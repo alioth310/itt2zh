@@ -32,6 +32,68 @@
 
             <p>自从2009年9月10日发布以来，TornadoTornado已经获得了很多社区的支持，并且在一系列不同的场合得到应用。除FriendFeed和Facebook外，还有很多公司在生产上转向Tornado，包括Quora、Turntable.fm、Bit.ly、Hipmunk以及MyYearbook等。</p>
             <p>总之，如果你在寻找你那庞大的CMS或一体化开发框架的替代品，Tornado可能并不是一个好的选择。Tornado并不需要你拥有庞大的模型建立特殊的方式，或以某种确定的形式处理表单，或其他类似的事情。它所做的是让你能够快速简单地编写高速的Web应用。如果你想编写一个可扩展的社交应用、实时分析引擎，或RESTful API，那么简单而强大的Python，以及Tornado（和这本书）正是为你准备的！</p>
+
+            <h3>Tornado入门</h3>
+            <p>在大部分*nix系统中安装Tornado非常容易--你既可以从PyPI获取（并使用<code>easy_install</code>或<code>pip</code>安装），也可以从Github上下载源码编译安装，如下所示<cite>[1]</cite>：</p>
+            <pre class="shell">$ <kbd>curl -L -0 https://github.com/facebook/tornado/archive/v3.1.0.tar.gz</kbd>
+$ <kbd>tar xvzf v3.1.0.tar.gz</kbd>
+$ <kbd>cd tornado-3.1.0</kbd>
+$ <kbd>python setup.py build</kbd>
+$ <kbd>sudo python setup.py install</kbd></pre>
+            <p>Tornado官方并不支持Windows，但你可以通过ActivePython的PyPM包管理器进行安装，类似如下所示：</p>
+            <pre class="shell">C:\&gt; <kbd>pypm install tornado</kbd></pre>
+            <p>一旦Tornado在你的机器上安装好，你就可以很好的开始了！压缩包中包含很多demo，比如建立博客、整合Facebook、运行聊天服务等的示例代码。我们稍后会在本书中通过一些示例应用逐步讲解，不过你也应该看看这些官方demo。</p>
+            <div class="warning">本书中的代码假定你使用的是基于Unix的系统，并且使用的是Python2.6或2.7版本。如果是这样，你就不需要任何除了Python标准库之外的东西。如果你的Python版本是2.5或更低，在安装<dfn>pycURL</dfn>、<dfn>simpleJSON</dfn>和Python开发头文件后可以运行Tornado。<cite>[2]</cite></div>
+            
+            <h3>社区和支持</h3>
+            <p>对于问题、示例和一般的指南，Tornado官方文档是个不错的选择。在<a href="http://tornadoweb.org">tornadoweb.org</a>上有大量的例子和功能缺陷，更多细节和变更可以在<a href="http://github.com/facebook/tornado">Tornado在Github上的版本库</a>中看到。而对于更具体的问题，可以到<a href="http://groups.google.com/group/python-tornado">Tornado的Google Group</a>中咨询，那里有很多活跃的日常使用Tornado的开发者。</p>
+
+            <h2>简单的Web服务</h2>
+            <p>既然我们已经知道了Tornado是什么了，现在让我们看看它能做什么吧。我们首先从使用Tornado编写一个简单的Web应用开始。
+            
+            <h3>Hello Tornado</h3>
+            <p>Tornado是一个编写对HTTP请求响应的框架。作为程序员，你的工作是编写响应特定条件HTTP请求的响应的handler。下面是一个全功能的Tornado应用的基础示例：</p>
+            <div class="codelist">
+                <div class="codelist-title">代码清单1-1  基础：hello.py</div>
+                <pre class="codelist-code">import tornado.httpserver
+import tornado.ioloop
+import tornado.options
+import tornado.web
+
+from tornado.options import define, options
+define("port", default=8000, help="run on the given port", type=int)
+
+class IndexHandler(tornado.web.RequestHandler):
+    def get(self):
+        greeting = self.get_argument('greeting', 'Hello')
+        self.write(greeting + ', friendly user!')
+
+if __name__ == "__main__":
+    tornado.options.parse_command_line()
+    app = tornado.web.Application(handlers=[(r"/", IndexHandler)])
+    http_server = tornado.httpserver.HTTPServer(app)
+    http_server.listen(options.port)
+    tornado.ioloop.IOLoop.instance().start()</pre>
+            </div>
+            <p>编写一个Tornado应用中最多的工作是定义类继承Tornado的<var>RequestHandler</var>类。在这个例子中，我们创建了一个简单的应用，在给定的端口监听请求，并在根目录（"/"）响应请求。</p>
+            <p>你可以在命令行里尝试运行这个程序以测试输出：</p>
+            <pre class="shell">$ <kbd>python hello.py --port=8000</kbd></pre>
+            <p>现在你可以在浏览器中打开<a href="http://localhost:8000/">http://localhost:8000</a>，或者打开另一个终端窗口使用curl测试我们的应用：</p>
+            <pre class="shell">$ <kbd>curl http://localhost:8000/</kbd>
+Hello, friendly user!
+$ <kbd>curl http://localhost:8000/?greeting=Salutations</kbd>
+Salutations, friendly user!</pre>
+            <p>让我们把这个例子分成小块，逐步分析它们：</p>
+            <pre class="codelist-code">import tornado.httpserver
+import tornado.ioloop
+import tornado.options
+import tornado.web</pre>
+
+
+            <div class="cite-description">
+                [1] 压缩包地址已更新到Tornado的最新版本3.1.0。<br />
+                [2] 书中原文中关于Python3.X版本的兼容性问题目前已不存在，因此省略该部分。
+            </div>
         </div>
     </body>
 </html>
