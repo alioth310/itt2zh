@@ -2,12 +2,30 @@ body {
     margin: 0 auto;
     padding: 0;
     width: 980px;
-    overflow: auto;
     font: 14px/1.4 Arial, Helvetica, sans-serif;
 }
 
 .container {
     margin: 10px 30px;
+}
+
+.clearfix:before, .clearfix:after {
+    content: "";
+    display: table;
+}
+
+.clearfix:after {
+    clear: both;
+    overflow: hidden;
+}
+
+.clearfix {
+    zoom: 1; /* IE < 8 */
+}
+
+.footer {
+    text-align: center;
+    margin-top: 40px;
 }
 
 h1 {
@@ -55,6 +73,18 @@ a, a:visited  {
 
 a:hover {
     color: #ff0000;
+}
+
+.figure {
+    text-align: center;
+}
+
+.figure img {
+}
+
+.figure p {
+    font-style: italic;
+    margin-top: 0;
 }
 
 cite {
@@ -112,28 +142,31 @@ pre {
     border-bottom: 2px solid #444;
 }
 
-.filename, .bookname {
+.filename, .bookname, .examplename {
     font-style: italic;
     margin: 0 2px;
 }
 
 .warning, .tip {
-    float: left;
-    min-height: 150px;
-}
-
-.warning p, .tip p {
-    margin: 10px 100px 10px 200px;
+    min-height: 85px;
+    margin: 20px 0 20px 50px;
 }
 
 .warning {
     background: url(../images/warning.jpg) no-repeat left top;
 }
 
+.warning p {
+    margin: 20px 100px 10px 140px;
+}
+
 .tip {
     background: url(../images/tip.jpg) no-repeat left top;
 }
 
+.tip p {
+    margin: 20px 100px 10px 100px;
+}
 
 .box {
     border: 1px solid #222;
