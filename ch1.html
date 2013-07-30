@@ -225,7 +225,7 @@ class FrobHandler(tornado.web.RequestHandler):
             <h5>400 Bad Request</h5>
             <p class="indentation">如果你调用了一个没有默认值的<var>get_argument</var>函数，并且没有发现给定名称的参数，Tornado将自动返回一个400（Bad Request）响应码。</p>
             <h5>405 Method Not Allowed</h5>
-            <p class="indentation">如果传入的请求使用了<var>RequestHandler</var>中没有定义的HTTP方法（比如，一个<dfn>POST</dfn>请求，但是处理函数中只有定义了<var>get</var>方法），Tornado将返回一个405（Methos Not Allowed）响应码</p>
+            <p class="indentation">如果传入的请求使用了<var>RequestHandler</var>中没有定义的HTTP方法（比如，一个<dfn>POST</dfn>请求，但是处理函数中只有定义了<var>get</var>方法），Tornado将返回一个405（Methos Not Allowed）响应码。</p>
             <h5>500 Internal Server Error</h5>
             <p class="indentation">当程序遇到任何不能让其退出的错误时，Tornado将返回500（Internal Server Error）响应码。你代码中任何没有捕获的异常也会导致500响应码。</p>
             <h5>200 OK</h5>
@@ -255,7 +255,7 @@ if __name__ == "__main__":
     http_server.listen(options.port)
     tornado.ioloop.IOLoop.instance().start()</pre>
             </div>
-            <p>当我们尝试一个<dfn>POST</dfn>请求时，会得到下面的响应。一般来说，我们应该得到Tornado默认的错误响应，但因为我们覆写了<var>write_error</var>，我们会得到不一样的东西</p>
+            <p>当我们尝试一个<dfn>POST</dfn>请求时，会得到下面的响应。一般来说，我们应该得到Tornado默认的错误响应，但因为我们覆写了<var>write_error</var>，我们会得到不一样的东西：</p>
             <pre class="shell">$ <kbd>curl -d foo=bar http://localhost:8000/</kbd>
 Gosh darnit, user! You caused a 405 error.</pre>
             
