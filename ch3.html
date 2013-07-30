@@ -13,7 +13,172 @@
             <h1>第三章：模板扩展</h1>
             <p>在<a href="./ch2.html">第二章</a>中，我们看到了Tornado模板系统如何简单地传递信息给网页，使你在插入动态数据时保持网页标记的整洁。然而，大多数站点希望复用像header、footer和布局网格这样的内容。在这一章中，我们将看到如何使用扩展Tornado模板或UI模块完成这一工作。</p>
 
-            <h2>块和替换</h2>
+            <h2>3.1 块和替换</h2>
+            <p>当你花时间为你的Web应用建立和制定模板时，希望像你的后端Python代码一样重用你的前端代码似乎只是合逻辑的，不是吗？幸运的是，Tornado可以让你做到这一点。Tornado通过<var>extends</var>和<var>block</var>语句支持模板继承，这就让你拥有了编写能够在合适的地方复用的流体模板的控制权和灵活性。</p>
+            <p>为了扩展一个已经存在的模板，你只需要在新的模板文件的顶部放上一句<code>{% extends "filename.html" %}。</code>比如，为了在新模板中扩展一个父模板（在这里假设为<span class="filename">main.html</span>），你可以这样使用：</p>
+            <pre class="codelist-code">{% extends "main.html" %}</pre>
+            <p>这就使得新文件继承<span class="filename">main.html</span>的所有标签，并且覆写为期望的内容。</p>
+
+            <h3>3.1.1 块基础</h3>
+            <p>扩展一个模板使你复用之前写过的代码更加简单，但是这并不会为你提供所有的东西，除非你可以适应并改变那些之前的模板。所以，<var>block</var>语句出现了。</p>
+            <p>一个块语句压缩了一些当你扩展时可能想要改变的模板元素。比如，为了使用一个能够根据不同页覆写的动态header块，你可以在父模板<span class="filename">main.html</span>中添加如下代码：</p> 
+            <pre class="codelist-code">&lt;header&gt;
+    {% block header %}{% end %}
+&lt;/header&gt;</pre>
+            <p>然后，为了在子模板<span class="filename">index.html</span>中覆写<code>{% block header %}{% end %}</code>部分，你可以使用块的名字引用，并把任何你想要的内容放到其中。</p>
+            <pre class="codelist-code">{% block header %}{% end %}
+
+{% block header %}
+    &lt;h1&gt;Hello world!&lt;/h1&gt;
+{% end %}</pre>
+            <p>任何继承这个模板的文件都可以包含它自己的<code>{% block header %}</code>和<code>{% end %}</code>，然后把一些不同的东西加进去。</p>
+            <p>为了在Web应用中调用这个子模板，你可以在你的Python脚本中很轻松地渲染它，就像之前你渲染其他模板那样：</p>
+            <pre class="codelist-code">class MainHandler(tornado.web.RequestHandler):
+    def get(self):
+        self.render("index.html")</pre>
+            <p>所以此时，<span class="filename">main.html</span>中的<var>body</var>块在加载时会被以<span class="filename">index.html</span>中的信息"Hello world!"填充（参见图3-1）。</p>
+            <div class="figure">
+                <img src="./static/images/Figure3-1.jpg" alt="图3-1" />
+                <p>图3-1 Hello world!</p>
+            </div>
+            <p>我们已经可以看到这种方法在处理整体页面结构和节约多页面网站的开发时间上多么有用。更好的是，你可以为每个页面使用多个块，此时像header和footer这样的动态元素将会被包含在同一个流程中。</p>
+            <p>下面是一个在父模板<span class="filename">main.html</span>中使用多个块的例子：</p>
+            <pre class="codelist-code">&lt;html&gt;
+&lt;body&gt;
+    &lt;header&gt;
+        {% block header %}{% end %}
+    &lt;/header&gt;
+    &lt;content&gt;
+        {% block body %}{% end %}
+    &lt;/content&gt;
+    &lt;footer&gt;
+        {% block footer %}{% end %}
+    &lt;/footer&gt;
+&lt;/body&gt;
+&lt;/html&gt;</pre>
+            <p>当我们扩展父模板<span class="filename">main.html</span>时，可以在子模板<span class="filename">index.html</span>中引用这些块。</p>
+            <pre class="codelist-code">{% extends "main.html" %}
+
+{% block header %}
+    &lt;h1&gt;{{ header_text }}&lt;/h1&gt;
+{% end %}
+
+{% block body %}
+    &lt;p&gt;Hello from the child template!&lt;/p&gt;
+{% end %}
+
+{% block footer %}
+    &lt;p&gt;{{ footer_text }}&lt;/p&gt;
+{% end %}</pre>
+            <p>用来加载模板的Python脚本和上一个例子差不多，不过在这里我们传递了几个字符串变量给模板使用（如图3-2）：</p>
+            <pre class="codelist-code">class MainHandler(tornado.web.RequestHandler):
+    def get(self):
+        self.render(
+            "index.html",
+            header_text = "Header goes here",
+            footer_text = "Footer goes here"
+        )</pre>
+            <div class="figure">
+                <img src="./static/images/Figure3-2.jpg" alt="图3-2" />
+                <p>图3-2 块基础</p>
+            </div>
+            <p>你也可以保留父模板块语句中的默认文本和标记，就像扩展模板没有指定它自己的块版本一样被渲染。这种情况下，你可以根据某页的情况只替换必须的东西，这在包含或替换脚本、CSS文件和标记块时非常有用。</p>
+            <div class="warning">
+                <p>正如模板文档所记录的，"错误报告目前...呃...是非常有意思的"。一个语法错误或者没有闭合的<var>{% block %}</var>语句可以使得浏览器直接显示500: Internal Server Error（如果你运行在<var>debug</var>模式下会引发完整的Python堆栈跟踪）。如图3-3所示。</p>
+                <p>总之，为了你自己好的话，你需要使自己的模板尽可能的鲁棒，并且在模板被渲染之前发现错误。</p>
+            </div>
+            <div class="figure">
+                <img src="./static/images/Figure3-3.jpg" alt="图3-3" />
+                <p>图3-3 块错误</p>
+            </div>
+
+            <h3>3.1.2 模板练习：Burt's Book</h3>
+            <p>所以，你会认为这听起来很有趣，但却不能描绘出在一个标准的Web应用中如何使用？那么让我们在这里看一个例子，我们的朋友Burt希望运行一个名叫Burt's Books的书店。</p>
+            <p>Burt通过他的书店卖很多书，他的网站会展示很多不同的内容，比如新品推荐、商店信息等等。Burt希望有一个固定的外观和感觉的网站，同时也能更简单的更新页面和段落。</p>
+            <p>为了做到这些，Burt's Book使用了以Tornado为基础的网站，其中包括一个拥有样式、布局和header/footer细节的主模版，以及一个处理页面的轻量级的子模板。在这个系统中，Burt可以把最新发布、员工推荐、即将发行等不同页面编写在一起，共同使用通用的基础属性。</p>
+            <p>Burt's Book的网站使用一个叫作<span class="filename">main.html</span>的主要基础模板，用来包含网站的通用架构，如下面的代码所示：</p>
+            <pre class="codelist-code">&lt;html&gt;
+&lt;head&gt;
+    &lt;title&gt;{{ page_title }}&lt;/title&gt;
+    &lt;link rel="stylesheet" href="{{ static_url("css/style.css") }}" /&gt;
+&lt;/head&gt;
+&lt;body&gt;
+    &lt;div id="container"&gt;
+        &lt;header&gt;
+            {% block header %}&lt;h1&gt;Burt's Books&lt;/h1&gt;{% end %}
+        &lt;/header&gt;
+        &lt;div id="main"&gt;
+            &lt;div id="content"&gt;
+                {% block body %}{% end %}
+            &lt;/div&gt;
+        &lt;/div&gt;
+        &lt;footer&gt;
+            {% block footer %}
+                &lt;p&gt;
+    For more information about our selection, hours or events, please email us at
+    &lt;a href="mailto:contact@burtsbooks.com"&gt;contact@burtsbooks.com&lt;/a&gt;.
+                &lt;/p&gt;
+            {% end %}
+        &lt;/footer&gt;
+    &lt;/div&gt;
+    &lt;script src="{{ static_url("js/script.js") }}"&gt;&lt;/script&gt;
+    &lt;/body&gt;
+&lt;/html&gt;</pre>
+            <p>这个页面定义了结构，应用了一个CSS样式表，并加载了主要的JavaScript文件。其他模板可以扩展它，在必要时替换header、body和footer块。</p>
+            <p>这个网站的index页（<span class="filename">index.html</span>）欢迎友好的网站访问者并提供一些商店的信息。通过扩展<span class="filename">main.html</span>，这个文件只需要包括用于替换默认文本的header和body块的信息。</p>
+            <pre class="codelist-code">{% extends "main.html" %}
+
+{% block header %}
+    &lt;h1&gt;{{ header_text }}&lt;/h1&gt;
+{% end %}
+
+{% block body %}
+    &lt;div id="hello"&gt;
+        &lt;p&gt;Welcome to Burt's Books!&lt;/p&gt;
+        &lt;p&gt;...&lt;/p&gt;
+    &lt;/div&gt;
+{% end %}</pre>
+            <p>在footer块中，这个文件使用了Tornado模板的默认行为，继承了来自父模板的联系信息。</p>
+            <p>为了运作网站，传递信息给index模板，下面给出Burt's Book的Python脚本（<span class="filename">main.py</span>）：</p>
+            <pre class="codelist-code">import tornado.web
+import tornado.httpserver
+import tornado.ioloop
+import tornado.options
+import os.path
+
+from tornado.options import define, options
+define("port", default=8000, help="run on the given port", type=int)
+
+class Application(tornado.web.Application):
+    def __init__(self):
+        handlers = [
+            (r"/", MainHandler),
+        ]
+        settings = dict(
+            template_path=os.path.join(os.path.dirname(__file__), "templates"),
+            static_path=os.path.join(os.path.dirname(__file__), "static"),
+            debug=True,
+        )
+        tornado.web.Application.__init__(self, handlers, **settings)
+
+class MainHandler(tornado.web.RequestHandler):
+    def get(self):
+        self.render(
+            "index.html",
+            page_title = "Burt's Books | Home",
+            header_text = "Welcome to Burt's Books!",
+        )
+
+if __name__ == "__main__":
+    tornado.options.parse_command_line()
+    http_server = tornado.httpserver.HTTPServer(Application())
+    http_server.listen(options.port)
+    tornado.ioloop.IOLoop.instance().start()</pre>
+            <div class="tip">
+                <p>这个例子的结构和我们之前见到的不太一样，但你一点都不需要害怕。我们不再像之前那样通过使用一个处理类列表和一些其他关键字参数调用<var>tornado.web.Application</var>的构造函数来创建实例，而是定义了我们自己的Application子类，在这里我们简单地称之为<var>Application</var>。在我们定义的<var>__init__</var>方法中，我们创建了处理类列表以及一个设置的字典，然后在初始化子类的调用中传递这些值，就像下面的代码一样：</p>
+                <p><code>tornado.web.Application.__init__(self, handlers, **settings)</code></p>
+            </div>
+            <p>所以在这个系统中，Burt's Book可以很容易地改变index页面并保持基础模板在其他页面被使用时完好。此外，他们可以充分利用Tornado的真实能量，由Python脚本和/或数据库提供动态内容。我们将在之后看到更多相关的内容。</p>
 
 
             <div class="cite-description">
