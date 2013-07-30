@@ -84,7 +84,7 @@ And that has {{made}} all the {{difference}}.&lt;/p&gt;
     &lt;/body&gt;
 &lt;/html&gt;</pre>
             </div>
-            <p>在命令行执行下述命令</p>
+            <p>在命令行执行下述命令：</p>
             <pre class="shell">$ <kbd>python poemmaker.py --port=8000</kbd></pre>
             <p>现在，在浏览器中打开<a href="http://localhost:8000">http://localhost:8000</a>。当浏览器请求根目录（/）时，Tornado程序将渲染<span class="filename">index.html</span>，展示如图2-1所示的简单HTML表单。</p>
             <div class="figure">
@@ -269,7 +269,7 @@ if __name__ == '__main__':
             </div>
             <div class="figure">
                 <img src="./static/images/Figure2-4.jpg" alt="图2-4" />
-                <p>图2-3 Alpha Munger：输出</p>
+                <p>图2-4 Alpha Munger：输出</p>
             </div>
             <p>记住<var>Application</var>构造函数中的<var>static_path</var>参数。我们将在下面进行详细的介绍，但是现在你所需要知道的就是<var>static_path</var>参数指定了你应用程序放置静态资源（如图像、CSS文件、JavaScript文件等）的目录。另外，你还需要在<span class="filename">templates</span>文件夹下添加<span class="filename">index.html</span>和<span class="filename">munged.html</span>这两个文件。</p>
             <div class="codelist">
