@@ -142,7 +142,7 @@ pre {
     border-bottom: 2px solid #444;
 }
 
-.filename, .bookname, .examplename {
+.filename, .bookname, .examplename, .propernoun {
     font-style: italic;
     margin: 0 2px;
 }
