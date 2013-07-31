@@ -11,6 +11,40 @@
     <body>
         <div class="container">
             <h1>第四章：数据库</h1>
+            <p>在本章中，我们将给出几个使用数据库的Tornado Web应用的例子。我们将从一个简单的RESTful API例子起步，然后创建3.1.2节中的Burt's Book网站的完整功能版本。</p>
+            <p>本章中的例子使用MongoDB作为数据库，并通过pymongo作为驱动来连接MongoDB。当然，还有很多数据库系统可以用在Web应用中：Redis、CouchDB和MySQL都是一些知名的选择，并且Tornado自带处理MySQL请求的库。我们选择使用MongoDB是因为它的简单性和便捷性：安装简单，并且能够和Python代码很好地融合。它结构自然，预定义数据结构不是必需的，很适合原型开发。</p>
+            <p>在本章中，我们假设你已经在机器上安装了MongoDB，能够运行示例代码，不过也可以在远程服务器上使用MongoDB，相关的代码调整也很容易。如果你不想在你的机器上安装MongoDB，或者没有一个适合你操作系统的MongoDB版本，你也可以选择一些MongoDB主机服务。我们推荐使用<a href="http://www.mongohq.com">MongoHQ</a>。在我们最初的例子中，假设你已经在你的机器上运行了MongoDB，但使用远程服务器（包括MongoHQ）运行的MongoDB时，调整代码也很简单。</p>
+            <p>我们同样还假设你已经有一些数据库的经验了，尽管并不一定是特定的MongoDB数据库的经验。当然，我们只会使用MongoDB的一点皮毛；如果想获得更多信息请查阅MongoDB文档（<a href="http://www.mongodb.org/display/DOCS/Home">http://www.mongodb.org/display/DOCS/Home</a>）让我们开始吧！</p>
+
+            <h2>4.1 使用PyMongo进行MongoDB基础操作</h2>
+            <p>在我们使用MongoDB编写Web应用之前，我们需要了解如何在Python中使用MongoDB。在这一节，你将学会如何使用PyMongo连接MongoDB数据库，然后学习如何使用pymongo在MongoDB集合中创建、取出和更新文档。</p>
+            <p>PyMongo是一个简单的包装MongoDB客户端API的Python库。你可以在<a href="http://api.mongodb.org/python/current/">http://api.mongodb.org/python/current/</a>下载获得。一旦你安装完成，打开一个Python解释器，然后跟随下面的步骤。</p>
+
+            <h3>4.1.1 创建连接</h3>
+            <p>首先，你需要导入PyMongo库，并创建一个到MongoDB数据库的连接。</p>
+            <pre class="shell">&gt;&gt;&gt; <kbd>import pymongo</kbd>
+&gt;&gt;&gt; <kbd>conn = pymongo.Connection("localhost", 27017)</kbd></pre>
+            <p>前面的代码向我们展示了如何连接运行在你本地机器上默认端口（27017）上的MongoDB服务器。如果你正在使用一个远程MongoDB服务器，替换<var>localhost</var>和<var>27017</var>为合适的值。你也可以使用MongoDB URI来连接MongoDB，就像下面这样：</p>
+            <pre class="shell">&gt;&gt;&gt; <kbd>conn = pymongo.Connection(</kbd>
+... <kbd>"mongodb://user:password@staff.mongohq.com:10066/your_mongohq_db")</kbd></pre>
+            <p>前面的代码将连接MongoHQ主机上的一个名为<var>your_mongohq_db</var>的数据库，其中<var>user</var>为用户名，<var>password</var>为密码。你可以在<a href="http://www.mongodb.org/display/DOCS/Connections">http://www.mongodb.org/display/DOCS/Connections</a>中了解更多关于MongoDB URI的信息。</p>
+            <p>一个MongoDB服务器可以包括任意数量的数据库，而<var>Connection</var>对象可以让你访问你连接的服务器的任何一个数据库。你可以通过对象属性或像字典一样使用对象来获得代表一个特定数据库的对象。如果数据库不存在，则被自动建立。</p>
+            <pre class="shell">&gt;&gt;&gt; <kbd>db = conn.example</kbd> or: <kbd>db = conn['example']</kbd></pre>
+            <p>一个数据库可以拥有任意多个<span class="propernoun">集合</span>。一个集合就是放置一些相关文档的地方。我们使用MongoDB执行的大部分操作（查找文档、保存文档、删除文档）都是在一个集合对象上执行的。你可以在数据库对象上调用<var>collection_names</var>方法获得数据库中的集合列表。</p>
+            <pre class="shell">&gt;&gt;&gt; <kbd>db.collection_names()</kbd>
+[]</pre>
+            <p>当然，我们还没有在我们的数据库中添加任何集合，所以这个列表是空的。当我们插入第一个文档时，MongoDB会自动创建集合。你可以在数据库对象上通过访问集合名字的属性来获得代表集合的对象，然后调用对象的<var>insert</var>方法指定一个Python字典来插入文档。比如，在下面的代码中，我们在集合<var>widgets</var>中插入了一个文档。因为<var>widgets</var>集合并不存在，MongoDB会在文档被添加时自动创建。</p>
+            <pre class="shell">&gt;&gt;&gt; <kbd>widgets = db.widgets</kbd> or: <kbd>widgets = db['widgets']</kbd> (see below)
+&gt;&gt;&gt; <kbd>widgets.insert({"foo": "bar"})</kbd>
+ObjectId('4eada0b5136fc4aa41000000')
+&gt;&gt;&gt; <kbd>db.collection_names()</kbd>
+[u'widgets', u'system.indexes']</pre>
+            <p>（<var>system.indexes</var>集合是MongoDB内部使用的。处于本章的目的，你可以忽略它。）</p>
+            <p>在之前展示的代码中，你既可以使用数据库对象的属性访问集合，也可以把数据库对象看作一个字典然后把集合名称作为键来访问。比如，如果<var>db</var>是一个pymongo数据库对象，那么<var>db.widgets</var>和<var>db['widgets']</var>同样都可以访问这个集合。</p>
+
+            <h3>4.1.2 处理文档</h3>
+            
+
 
 
 
