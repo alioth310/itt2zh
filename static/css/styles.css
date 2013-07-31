@@ -156,7 +156,7 @@ pre {
     background: url(../images/warning.jpg) no-repeat left top;
 }
 
-.warning p {
+.warning p, .warning pre {
     margin: 20px 100px 10px 140px;
 }
 
@@ -164,7 +164,7 @@ pre {
     background: url(../images/tip.jpg) no-repeat left top;
 }
 
-.tip p {
+.tip p, .tip pre {
     margin: 20px 100px 10px 100px;
 }
 
