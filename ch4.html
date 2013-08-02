@@ -215,10 +215,10 @@ self.db = conn["example"]</pre>
             <pre class="shell">$ <kbd>curl -d definition=a+leg+shirt http://localhost:8000/pants</kbd>
 {"definition": "a leg shirt", "word": "pants"}</pre>
             <p>我们可以使用一个<dfn>GET</dfn>请求来获得已创建单词的定义：</p>
-            <pre class="shell">$ <kbd>$ curl http://localhost:8000/pants</kbd>
+            <pre class="shell">$ <kbd>curl http://localhost:8000/pants</kbd>
 {"definition": "a leg shirt", "word": "pants"}</pre>
             <p>我们可以发出一个带有一个单词定义域的<dfn>POST</dfn>请求来修改一个已经存在的单词（就和我们创建一个新单词时使用的参数一样）：</p>
-            <pre class="shell">$ <kbd>$ curl -d definition=a+boat+wizard http://localhost:8000/oarlock</kbd>
+            <pre class="shell">$ <kbd>curl -d definition=a+boat+wizard http://localhost:8000/oarlock</kbd>
 {"definition": "a boat wizard", "word": "oarlock"}</pre>
             <p>代码清单4-2是我们的词典Web服务的读写版本的源代码。</p>
             <div class="codelist">
@@ -393,7 +393,7 @@ self.db = conn["bookstore"]</pre>
             <p>此前，书籍列表是被硬编码在<var>get</var>方法中的。但是，因为我们在MongoDB中添加的文档和原始的硬编码字典拥有相同的域，所以我们之前写的模板代码并不需要修改。</p>
             <p>像下面这样运行应用：</p>
             <pre class="shell">$ <kbd>python burts_books_db.py</kbd></pre>
-            <p>然后让你的浏览器指向<a href="http://localhost:8000/recommended/">http://localhost:8000/recommended/</a>。这次，页面和硬编码版本的Burt's Books看起来几乎一样。（参见图3-6）</p>
+            <p>然后让你的浏览器指向<a href="http://localhost:8000/recommended/">http://localhost:8000/recommended/</a>。这次，页面和硬编码版本的Burt's Books看起来几乎一样（参见图3-6）。</p>
             
             <h3>4.3.2 编辑和添加书籍</h3>
             <p>我们的下一步是添加一个接口用来编辑已经存在于数据库的书籍以及添加新书籍到数据库中。为此，我们需要一个让用户填写书籍信息的表单，一个服务表单的处理程序，以及一个处理表单结果并将其存入数据库的处理函数。</p>
