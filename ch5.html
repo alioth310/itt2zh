@@ -77,7 +77,7 @@ response = client.fetch("http://search.twitter.com/search.json?" + \
 body = json.loads(response.body)</pre>
             <p>这里我们实例化了一个Tornado的<var>HTTPClient</var>类，然后调用结果对象的<var>fetch</var>方法。<var>fetch</var>方法的同步版本使用要获取的URL作为参数。这里，我们构建一个URL来抓取Twitter搜索API的相关搜索结果（<var>rpp</var>参数指定我们想获得搜索结果首页的100个推文，而<var>result_type</var>参数指定我们只想获得匹配搜索的最近推文）。<var>fetch</var>方法会返回一个<var>HTTPResponse</var>对象，其 <var>body</var>属性包含我们从远端URL获取的任何数据。Twitter将返回一个JSON格式的结果，所以我们可以使用Python的<var>json</var>模块来从结果中创建一个Python数据结构。</p>
             <div class="tip">
-                <p><var>fetch</var>方法返回的<var>HTTPResponse</var>对象允许你访问HTTP响应的任何部分，不只是body。可以在<a href="http://www.tornadoweb.org/en/stable/httpclient.html">官方文档</a>阅读更多相关信息。</p>
+                <p><var>fetch</var>方法返回的<var>HTTPResponse</var>对象允许你访问HTTP响应的任何部分，不只是body。可以在<a href="http://www.tornadoweb.org/en/stable/httpclient.html">官方文档</a><cite>[1]</cite>阅读更多相关信息。</p>
             </div>
             <p>处理函数的其余部分关注的是计算每秒推文数。我们使用搜索结果中最旧推文与最新推文时间戳之差来确定搜索覆盖的时间，然后使用这个数值除以搜索取得的推文数来获得我们的最终结果。最后，我们编写了一个拥有这个结果的简单HTML页面给浏览器。</p>
 
@@ -252,7 +252,7 @@ body = json.loads(response.body)</pre>
                 <img src="./static/images/Figure5-4.jpg" alt="图5-4" />
                 <p>图5-4 使用tornado.gen的异步推率获取</p>
             </div>
-            <p>记住<var>@tornado.gen.engine</var>装饰器的使用需要刚好在<var>get</var>方法的定义之前；这将提醒Tornado这个方法将使用<var>tornado.gen.Task</var>类。<var>tornado.gen</var>模块还哟一些其他类和函数可以方便Tornado的异步编程。查阅一下<a href="http://www.tornadoweb.org/en/stable/gen.html">文档</a>是非常值得的。
+            <p>记住<var>@tornado.gen.engine</var>装饰器的使用需要刚好在<var>get</var>方法的定义之前；这将提醒Tornado这个方法将使用<var>tornado.gen.Task</var>类。<var>tornado.gen</var>模块还哟一些其他类和函数可以方便Tornado的异步编程。查阅一下<a href="http://www.tornadoweb.org/en/stable/gen.html">文档</a><cite>[1]</cite>是非常值得的。
             <div class="box">
                 <h1>使一切异步</h1>
                 <p>在本章中我们使用了Tornado的异步HTTP客户端作为如何执行异步任务的实现。其他开发者也编写了针对其他任务的异步客户端库。志愿者们在<a href="https://github.com/facebook/tornado/wiki/Links">Tornado wiki</a>上维护了一个关于这些库的相当完整的列表。</p>
@@ -264,7 +264,123 @@ body = json.loads(response.body)</pre>
             <p>不过，值得注意的是，这些例子都非常的做作。如果你正在设计一个任何规模下带有该功能的应用，你可能希望客户端浏览器来执行Twitter搜索请求（使用JavaScript），而让Web服务器转向提供其他请求。在大多数情况下，你至少希望将结果缓存以便两次相同搜索项的请求不会导致再次向远程API执行完整请求。通常，如果你在后端执行HTTP请求提供网站内容，你可能希望重新思考如何建立你的应用。</p>
             <p>考虑到这一点，在下一组示例中，我们将看看如何在前端使用像JavaScript这样的工具处理异步应用，让客户端承担更多工作，以提高你应用的扩展性。</p>
 
+            <h2>5.2 使用Tornado进行长轮询</h2>
+            <p>Tornado异步架构的另一个优势是它能够轻松处理HTTP长轮询。这是一个处理实时更新的方法，它既可以应用到简单的数字标记通知，也可以实现复杂的多用户聊天室。</p>
+            <p>部署提供实时更新的Web应用对于Web程序员而言是一项长期的挑战。更新用户状态、发送新消息提醒、或者任何一个需要在初始文档完成加载后由服务器向浏览器发送消息方法的全局活动。一个早期的方法是浏览器以一个固定的时间间隔向服务器轮询新请求。这项技术带来了新的挑战：轮询频率必须足够快以便通知是最新的，但又不能太频繁，当成百上千的客户端持续不断的打开新的连接会使HTTP请求面临严重的扩展性挑战。频繁的轮询使得Web服务器遭受"凌迟"之苦。</p>
+            <p>所谓的"服务器推送"技术允许Web应用实时发布更新，同时保持合理的资源使用以及确保可预知的扩展。对于一个可行的服务器推送技术而言，它必须在现有的浏览器上表现良好。最流行的技术是让浏览器发起连接来模拟服务器推送更新。这种方式的HTTP连接被称为<span class="term">长轮询</span>或<span class="term">Comet请求</span>。
+            <p>长轮询意味着浏览器只需启动一个HTTP请求，其连接的服务器会有意保持开启。浏览器只需要等待更新可用时服务器"推送"响应。当服务器发送响应并关闭连接后，（或者浏览器端客户请求超时），客户端只需打开一个新的连接并等待下一个更新。</p>
+            <p>本节将包括一个简单的HTTP长轮询实时应用以及证明Tornado架构如何使这些应用更简单。</p>
+
+            <h3>5.2.1 长轮询的好处</h3>
+            <p>HTTP长轮询的主要吸引力在于其极大地减少了Web服务器的负载。相对于客户端制造大量的短而频繁的请求（以及每次处理HTTP头部产生的开销），服务器端只有当其接收一个初始请求和再次发送响应时处理连接。大部分时间没有新的数据，连接也不会消耗任何处理器资源。</p>
+            <p>浏览器兼容性是另一个巨大的好处。任何支持AJAX请求的浏览器都可以执行推送请求。不需要任何浏览器插件或其他附加组件。对比其他服务器端推送技术，HTTP长轮询最终成为了被广泛使用的少数几个可行方案之一。</p>
+            <p>我们已经接触过长轮询的一些使用。实际上，前面提到的状态更新、消息通知以及聊天消息都是目前流行的网站功能。像Google Docs这样的站点使用长轮询同步协作，两个人可以同时编辑文档并看到对方的改变。Twitter使用长轮询指示浏览器在新状态更新可用时展示通知。Facebook使用这项技术在其聊天功能中。长轮询如此流行的一个原因是它改善了应用的用户体验：访客不再需要不断地刷新页面来获取最新的内容。</p>
+
+            <h3>5.2.2 示例：实时库存报告</h3>
+            <p>这个例子演示了一个根据多个购物者浏览器更新的零售商库存实时计数服务。这个应用提供一个带有"Add to Cart"按钮的HTML书籍细节页面，以及书籍剩余库存的计数。一个购物者将书籍添加到购物车之后，其他访问这个站点的访客可以立刻看到库存的减少。</p>
+            <p>为了提供库存更新，我们需要编写一个在初始化处理方法调用后不会立即关闭HTTP连接的<var>RequestHandler</var>子类。我们使用Tornado内建的<var>asynchronous</var>装饰器完成这项工作，如代码清单5-4所示。</p>
+            <div class="codelist">
+                <div class="codelist-title">代码清单5-4  长轮询：shopping_cart.py</div>
+                <pre class="codelist-code">import tornado.web
+import tornado.httpserver
+import tornado.ioloop
+import tornado.options
+from uuid import uuid4
+
+class ShoppingCart(object):
+    totalInventory = 10
+    callbacks = []
+    carts = {}
+
+    def register(self, callback):
+        self.callbacks.append(callback)
+
+    def moveItemToCart(self, session):
+        if session in self.carts:
+            return
+
+        self.carts[session] = True
+        self.notifyCallbacks()
+
+    def removeItemFromCart(self, session):
+        if session not in self.carts:
+            return
+
+        del(self.carts[session])
+        self.notifyCallbacks()
+
+    def notifyCallbacks(self):
+        for c in self.callbacks:
+            self.callbackHelper(c)
+
+        self.callbacks = []
+
+    def callbackHelper(self, callback):
+        callback(self.getInventoryCount())
+
+    def getInventoryCount(self):
+        return self.totalInventory - len(self.carts)
+
+class DetailHandler(tornado.web.RequestHandler):
+    def get(self):
+        session = uuid4()
+        count = self.application.shoppingCart.getInventoryCount()
+        self.render("index.html", session=session, count=count)
+
+class CartHandler(tornado.web.RequestHandler):
+    def post(self):
+        action = self.get_argument('action')
+        session = self.get_argument('session')
+
+        if not session:
+            self.set_status(400)
+            return
+
+        if action == 'add':
+            self.application.shoppingCart.moveItemToCart(session)
+        elif action == 'remove':
+            self.application.shoppingCart.removeItemFromCart(session)
+        else:
+            self.set_status(400)
+
+class StatusHandler(tornado.web.RequestHandler):
+    @tornado.web.asynchronous
+    def get(self):
+        self.application.shoppingCart.register(self.async_callback(self.on_message))
+
+    def on_message(self, count):
+        self.write('{"inventoryCount":"%d"}' % count)
+        self.finish()
+
+class Application(tornado.web.Application):
+    def __init__(self):
+        self.shoppingCart = ShoppingCart()
+
+        handlers = [
+            (r'/', DetailHandler),
+            (r'/cart', CartHandler),
+            (r'/cart/status', StatusHandler)
+        ]
+
+        settings = {
+            'template_path': 'templates',
+            'static_path': 'static'
+        }
+
+        tornado.web.Application.__init__(self, handlers, **settings)
+
+if __name__ == '__main__':
+    tornado.options.parse_command_line()
+
+    app = Application()
+    server = tornado.httpserver.HTTPServer(app)
+    server.listen(8000)
+    tornado.ioloop.IOLoop.instance().start()</pre>
+            </div>
+
+
             <div class="cite-description">
+                [1] 书中网页已不存在，替换为当前网址。<br />
             </div>
 
             <div class="footer">
