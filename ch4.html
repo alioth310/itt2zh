@@ -185,6 +185,7 @@ if __name__ == "__main__":
     http_server = tornado.httpserver.HTTPServer(Application())
     http_server.listen(options.port)
     tornado.ioloop.IOLoop.instance().start()</pre>
+            </div>
             <p>在命令行中像下面这样运行这个程序：</p>
             <pre class="shell">$ <kbd>python definitions_readonly.py</kbd></pre>
             <p>现在使用curl或者你的浏览器来向应用发送一个请求。</p>
@@ -267,6 +268,7 @@ if __name__ == "__main__":
     http_server = tornado.httpserver.HTTPServer(Application())
     http_server.listen(options.port)
     tornado.ioloop.IOLoop.instance().start()</pre>
+            </div>
             <p>除了在<var>WordHandler</var>中添加了一个<var>post</var>方法之外，这个源代码和只读服务的版本完全一样。让我们详细看看这个方法吧：</p>
             <pre class="codelist-code">def post(self, word):
     definition = self.get_argument("definition")
