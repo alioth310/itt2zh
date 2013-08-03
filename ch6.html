@@ -201,6 +201,7 @@ if __name__ == "__main__":
 
     &lt;body&gt;
         &lt;form action="/login" method="POST"&gt;
+            {% raw xsrf_form_html() %}
             Username: &lt;input type="text" name="username" /&gt;
             &lt;input type="submit" value="Log In" /&gt;
         &lt;/form&gt;
