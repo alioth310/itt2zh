@@ -377,10 +377,334 @@ if __name__ == '__main__':
     server.listen(8000)
     tornado.ioloop.IOLoop.instance().start()</pre>
             </div>
+            <p>让我们在看模板和脚本文件之前先详细看下<span class="filename">shopping_cart.py</span>。我们定义了一个<var>ShoppingCart</var>类来维护我们的库存中商品的数量，以及把商品加入购物车的购物者列表。然后，我们定义了<var>DetailHandler</var>用于渲染HTML；<var>CartHandler</var>用于提供操作购物车的接口；<var>StatusHandler</var>用于查询全局库存变化的通知。</p>
+            <p><var>DetailHandler</var>为每个页面请求产生一个唯一标识符，在每次请求时提供库存数量，并向浏览器渲染<span class="filename">index.html</span>模板。<var>CartHandler</var>为浏览器提供了一个API来请求从访客的购物车中添加或删除物品。浏览器中运行的JavaScript提交<dfn>POST</dfn>请求来操作访客的购物车。我们将在下面的<var>StatusHandler</var>和<var>ShoppingCart</var>类的讲解中看到这些方法是如何作用域库存数量查询的。</p>
+            <pre class="codelist-code">class StatusHandler(tornado.web.RequestHandler):
+    @tornado.web.asynchronous
+    def get(self):
+        self.application.shoppingCart.register(self.async_callback(self.on_message))</pre>
+            <p>关于<var>StatusHandler</var>首先需要注意的是<var>get</var>方法上面的<var>@tornado.web.asynchronous</var>装饰器。这使得Tornado在<var>get</var>方法返回时不会关闭连接。在这个方法中，我们只是注册了一个带有购物车控制器的回调函数。我们使用<var>self.async_callback</var>包住回调函数以确保回调函数中引发的异常不会使<var>RequestHandler</var>关闭连接。</p>
+            <div class="tip">
+                <p>在Tornado 1.1之前的版本中，回调函数必须被包在<var>self.async_callback()</var>方法中来捕获被包住的函数可能会产生的异常。不过，在Tornado 1.1或更新版本中，这不再是显式必须的了。</p>
+            </div>
+            <pre class="codelist-code">def on_message(self, count):
+    self.write('{"inventoryCount":"%d"}' % count)
+    self.finish()</pre>
+            <p>每当访客操作购物车，<var>ShoppingCart</var>控制器为每个已注册的回调函数调用<var>on_message</var>方法。这个方法将当前库存数量写入客户端并关闭连接。（如果服务器不关闭连接的话，浏览器可能不会知道请求已经被完成，也不会通知脚本有过更新。）既然长轮询连接已经关闭，购物车控制器必须删除已注册的回调函数列表中的回调函数。在这个例子中，我们只需要将回调函数列表替换为一个新的空列表。在请求处理中被调用并完成后删除已注册的回调函数十分重要，因为随后在调用回调函数时将在之前已关闭的连接上调用<var>finish()</var>，这会产生一个错误。</p>
+            <p>最后，<var>ShoppingCart</var>控制器管理库存分批和状态回调。<var>StatusHandler</var>通过<var>register</var>方法注册回调函数，即添加这个方法到内部的<var>callbacks</var>数组。</p>
+            <pre class="codelist-code">def moveItemToCart(self, session):
+    if session in self.carts:
+        return
 
+    self.carts[session] = True
+    self.notifyCallbacks()
+
+def removeItemFromCart(self, session):
+    if session not in self.carts:
+        return
+
+    del(self.carts[session])
+    self.notifyCallbacks()</pre>
+            <p>此外，<var>ShoppingCart</var>控制器还实现了<var>CartHandler</var>中的<var>addItemToCart</var>和<var>removeItemFromCart</var>。当<var>CartHandler</var>调用这些方法，请求页面的唯一标识符（传给这些方法的<var>session</var>变量）被用于在调用<var>notifyCallbacks</var>之前标记库存。<cite>[2]</cite></p>
+            <pre class="codelist-code">def notifyCallbacks(self):
+    for c in self.callbacks:
+        self.callbackHelper(c)
+
+    self.callbacks = []
+
+def callbackHelper(self, callback):
+    callback(self.getInventoryCount())</pre>
+            <p>已注册的回调函数被以当前可用库存数量调用，并且回调函数列表被清空以确保回调函数不会在一个已经关闭的连接上调用。</p>
+            <p>代码清单5-5是展示书籍列表变化的模板。</p>
+            <div class="codelist">
+                <div class="codelist-title">代码清单5-5  长轮询：index.html</div>
+                <pre class="codelist-code">&lt;html&gt;
+    &lt;head&gt;
+        &lt;title&gt;Burt's Books &ndash; Book Detail&lt;/title&gt;
+        &lt;script src="//ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"
+            type="text/javascript"&gt;&lt;/script&gt;
+        &lt;script src="{{ static_url('scripts/inventory.js') }}"
+            type="application/javascript"&gt;&lt;/script&gt;
+    &lt;/head&gt;
+
+    &lt;body&gt;
+        &lt;div&gt;
+            &lt;h1&gt;Burt's Books&lt;/h1&gt;
+
+            &lt;hr/&gt;
+            &lt;p&gt;&lt;h2&gt;The Definitive Guide to the Internet&lt;/h2&gt;
+            &lt;em&gt;Anonymous&lt;/em&gt;&lt;/p&gt;
+        &lt;/div&gt;
+
+        &lt;img src="static/images/internet.jpg" alt="The Definitive Guide to the Internet" /&gt;
+
+        &lt;hr /&gt;
+
+        &lt;input type="hidden" id="session" value="{{ session }}" /&gt;
+        &lt;div id="add-to-cart"&gt;
+            &lt;p&gt;&lt;span style="color: red;"&gt;Only &lt;span id="count"&gt;{{ count }}&lt;/span&gt;
+                left in stock! Order now!&lt;/span&gt;&lt;/p&gt;
+            &lt;p&gt;$20.00 &lt;input type="submit" value="Add to Cart" id="add-button" /&gt;&lt;/p&gt;
+        &lt;/div&gt;
+        &lt;div id="remove-from-cart" style="display: none;"&gt;
+            &lt;p&gt;&lt;span style="color: green;"&gt;One copy is in your cart.&lt;/span&gt;&lt;/p&gt;
+            &lt;p&gt;&lt;input type="submit" value="Remove from Cart" id="remove-button" /&gt;&lt;/p&gt;
+        &lt;/div&gt;
+    &lt;/body&gt;
+&lt;/html&gt;</pre>
+            </div>
+            <p>当<var>DetailHandler</var>渲染<span class="filename">index.html</span>模板时，我们只是渲染了图书的详细信息并包含了必需的的JavaScript代码。此外，我们通过<var>session</var>变量动态地包含了一个唯一ID，并以<var>count</var>变量保存当前库存值。</p>
+            <p>最后，我们将讨论客户端的JavaScript代码。由于这是一本关于Tornado的书籍，因此我们直到现在一直使用的是Python，而这个例子中的客户端代码是至关重要的，我们至少要能够理解它的要点。在代码清单5-6中，我们使用了jQuery库来协助定义浏览器的页面行为。</p>
+            <div class="codelist">
+                <div class="codelist-title">代码清单5-6  长轮询：inventory.js</div>
+                <pre class="codelist-code">$(document).ready(function() {
+    document.session = $('#session').val();
+
+    setTimeout(requestInventory, 100);
+
+    $('#add-button').click(function(event) {
+        jQuery.ajax({
+            url: '//localhost:8000/cart',
+            type: 'POST',
+            data: {
+                session: document.session,
+                action: 'add'
+            },
+            dataType: 'json',
+            beforeSend: function(xhr, settings) {
+                $(event.target).attr('disabled', 'disabled');
+            },
+            success: function(data, status, xhr) {
+                $('#add-to-cart').hide();
+                $('#remove-from-cart').show();
+                $(event.target).removeAttr('disabled');
+            }
+        });
+    });
+
+    $('#remove-button').click(function(event) {
+        jQuery.ajax({
+            url: '//localhost:8000/cart',
+            type: 'POST',
+            data: {
+                session: document.session,
+                action: 'remove'
+            },
+            dataType: 'json',
+            beforeSend: function(xhr, settings) {
+                $(event.target).attr('disabled', 'disabled');
+            },
+            success: function(data, status, xhr) {
+                $('#remove-from-cart').hide();
+                $('#add-to-cart').show();
+                $(event.target).removeAttr('disabled');
+            }
+        });
+    });
+});
+
+function requestInventory() {
+    jQuery.getJSON('//localhost:8000/cart/status', {session: document.session},
+        function(data, status, xhr) {
+            $('#count').html(data['inventoryCount']);
+            setTimeout(requestInventory, 0);
+        }
+    );
+}</pre>
+            </div>
+            <p>当文档完成加载时，我们为"Add to Cart"按钮添加了点击事件处理函数，并隐藏了"Remove form Cart"按钮。这些事件处理函数关联服务器的API调用，并交换添加到购物车接口和从购物车移除接口。</p>
+            <pre class="codelist-code">function requestInventory() {
+    jQuery.getJSON('//localhost:8000/cart/status', {session: document.session},
+        function(data, status, xhr) {
+            $('#count').html(data['inventoryCount']);
+            setTimeout(requestInventory, 0);
+        }
+    );
+}</pre>
+            <p><var>requestInventory</var>函数在页面完成加载后经过一个短暂的延迟再进行调用。在函数主体中，我们通过到<var>/cart/status</var>的HTTP <dfn>GET</dfn>请求初始化一个长轮询。延迟允许在浏览器完成渲染页面时使加载进度指示器完成，并防止Esc键或停止按钮中断长轮询请求。当请求成功返回时，<var>count</var>的内容更新为当前的库存量。图5-5所示为展示全部库存的两个浏览器窗口。</p>
+            <div class="figure">
+                <img src="./static/images/Figure5-5.jpg" alt="图5-5" />
+                <p>图5-5 长轮询示例：全部库存</p>
+            </div>
+            <p>现在，当你运行服务器，你将可以加载根URL并看到书籍的当前库存数量。打开多个细节页的浏览器窗口，并在其中一个窗口点击"Add to Cart"按钮。其余窗口的剩余库存数量会立刻更新，如果5-6所示。</p>
+            <div class="figure">
+                <img src="./static/images/Figure5-6.jpg" alt="图5-6" />
+                <p>图5-6 长轮询示例：一个物品在购物车中</p>
+            </div>
+            <p>这是一个非常简单的购物车实现，可以肯定的是--没有逻辑确保我们不会跌破总库存量，更不用说数据无法在Tornado应用的不同调用间或同一服务器并行的应用实例间保留。我们将这些改善作为练习留给读者。</p>
+
+            <h3>5.2.3 长轮询的缺陷</h3>
+            <p>正如我们所看到的，HTTP长轮询在站点或特定用户状态的高度交互反馈通信中非常有用。但我们也应该知道它的一些缺陷。</p>
+            <p>当使用长轮询开发应用时，记住对于浏览器请求超时间隔无法控制是非常重要的。由浏览器决定在任何中断情况下重新开启HTTP连接。另一个潜在的问题是许多浏览器限制了对于打开的特定主机的并发请求数量。当有一个连接保持空闲时，剩下的用来下载网站内容的请求数量就会有限制。</p>
+            <p>此外，你还应该明白请求是怎样影响服务器性能的。再次考虑购物车应用。由于在库存变化时所有的推送请求<em>同时</em>应答和关闭，使得在浏览器重新建立连接时服务器受到了新请求的猛烈冲击。对于像用户间聊天或消息通知这样的应用而言，只有少数用户的连接会同时关闭，这就不再是一个问题了。</p>
+
+            <h2>5.3 Tornado与WebSockets</h2>
+            <p>WebSockets是HTML5规范中新提出的客户-服务器通讯协议。这个协议目前仍是草案，只有最新的一些浏览器可以支持它。但是，它的好处是显而易见的，随着支持它的浏览器越来越多，我们将看到它越来越流行。（和以往的Web开发一样，必须谨慎地坚持依赖可用的新功能并能在必要时回滚到旧技术的务实策略。）</p>
+            <p>WebSocket协议提供了在客户端和服务器间持久连接的双向通信。协议本身使用新的<dfn>ws://URL</dfn>格式，但它是在标准HTTP上实现的。通过使用HTTP和HTTPS端口，它避免了从Web代理后的网络连接站点时引入的各种问题。HTML5规范不只描述了协议本身，还描述了使用WebSockets编写客户端代码所需要的浏览器API。</p>
+            <p>由于WebSocket已经在一些最新的浏览器中被支持，并且Tornado为之提供了一些有用的模块，因此来看看如何使用WebSockets实现应用是非常值得的。</p>
+
+            <h3>5.3.1 Tornado的WebSocket模块</h3>
+            <p>Tornado在<var>websocket</var>模块中提供了一个<var>WebSocketHandler</var>类。这个类提供了和已连接的客户端通信的WebSocket事件和方法的钩子。当一个新的WebSocket连接打开时，<var>open</var>方法被调用，而<var>on_message</var>和<var>on_close</var>方法分别在连接接收到新的消息和客户端关闭时被调用。</p>
+            <p>此外，<var>WebSocketHandler</var>类还提供了<var>write_message</var>方法用于向客户端发送消息，<var>close</var>方法用于关闭连接。</p>
+            <pre class="codelist-code">class EchoHandler(tornado.websocket.WebSocketHandler):
+    def open(self):
+        self.write_message('connected!')
+
+    def on_message(self, message):
+        self.write_message(message)</pre>
+            <p>正如你在我们的<var>EchoHandler</var>实现中所看到的，<var>open</var>方法只是使用<var>WebSocketHandler</var>基类提供的<var>write_message</var>方法向客户端发送字符串"connected!"。每次处理程序从客户端接收到一个新的消息时调用<var>on_message</var>方法，我们的实现中将客户端提供的消息原样返回给客户端。这就是全部！让我们通过一个完整的例子看看实现这个协议是如何简单的吧。</p>
+
+            <h3>5.3.2 示例：使用WebSockets的实时库存</h3>
+            <p>在本节中，我们可以看到把之前使用HTTP长轮询的例子更新为使用WebSockets是如何简单。但是，请记住，WebSockets还是一个新标准，只有最新的浏览器版本可以支持它。Tornado支持的特定版本的WebSocket协议版本只在Firefox 6.0或以上、Safari 5.0.1或以上、Chrome 6或以上、IE 10预览版或以上版本的浏览器中可用。</p>
+            <p>不去管免责声明，让我们先看看源码吧。除了服务器应用需要在<var>ShoppingCart</var>和<var>StatusHandler</var>类中做一些修改外，大部分代码保持和之前一样。代码清单5-7看起来会很熟悉。</p>
+            <div class="codelist">
+                <div class="codelist-title">代码清单5-7  WebSockets：shopping_cart.py</div>
+                <pre class="codelist-code">import tornado.web
+import tornado.websocket
+import tornado.httpserver
+import tornado.ioloop
+import tornado.options
+from uuid import uuid4
+
+class ShoppingCart(object):
+    totalInventory = 10
+    callbacks = []
+    carts = {}
+
+    def register(self, callback):
+        self.callbacks.append(callback)
+
+    def unregister(self, callback):
+        self.callbacks.remove(callback)
+        
+    def moveItemToCart(self, session):
+        if session in self.carts:
+            return
+
+        self.carts[session] = True
+        self.notifyCallbacks()
+
+    def removeItemFromCart(self, session):
+        if session not in self.carts:
+            return
+
+        del(self.carts[session])
+        self.notifyCallbacks()
+
+    def notifyCallbacks(self):
+        for callback in self.callbacks:
+            callback(self.getInventoryCount())
+
+    def getInventoryCount(self):
+        return self.totalInventory - len(self.carts)
+
+class DetailHandler(tornado.web.RequestHandler):
+    def get(self):
+        session = uuid4()
+        count = self.application.shoppingCart.getInventoryCount()
+        self.render("index.html", session=session, count=count)
+
+class CartHandler(tornado.web.RequestHandler):
+    def post(self):
+        action = self.get_argument('action')
+        session = self.get_argument('session')
+
+        if not session:
+            self.set_status(400)
+            return
+
+        if action == 'add':
+            self.application.shoppingCart.moveItemToCart(session)
+        elif action == 'remove':
+            self.application.shoppingCart.removeItemFromCart(session)
+        else:
+            self.set_status(400)
+
+class StatusHandler(tornado.websocket.WebSocketHandler):
+    def open(self):
+        self.application.shoppingCart.register(self.callback)
+
+    def on_close(self):
+        self.application.shoppingCart.unregister(self.callback)
+
+    def on_message(self, message):
+        pass
+        
+    def callback(self, count):
+        self.write_message('{"inventoryCount":"%d"}' % count)
+
+class Application(tornado.web.Application):
+    def __init__(self):
+        self.shoppingCart = ShoppingCart()
+
+        handlers = [
+            (r'/', DetailHandler),
+            (r'/cart', CartHandler),
+            (r'/cart/status', StatusHandler)
+        ]
+
+        settings = {
+            'template_path': 'templates',
+            'static_path': 'static'
+        }
+
+        tornado.web.Application.__init__(self, handlers, **settings)
+
+if __name__ == '__main__':
+    tornado.options.parse_command_line()
+
+    app = Application()
+    server = tornado.httpserver.HTTPServer(app)
+    server.listen(8000)
+    tornado.ioloop.IOLoop.instance().start()</pre>
+            </div>
+            <p>除了额外的导入语句外，我们只需要改变<var>ShoppingCart</var>和<var>StatusHandler</var>类。首先需要注意的是，为了获得<var>WebSocketHandler</var>的功能，需要使用<var>tornado.websocket</var>模块。</p>
+            <p>在<var>ShoppingCart</var>类中，我们只需要在通知回调函数的方式上做一个轻微的改变。因为WebSOckets在一个消息发送后保持打开状态，我们不需要在它们被通知后移除内部的回调函数列表。我们只需要迭代列表并调用带有当前库存量的回调函数：</p>
+            <pre class="codelist-code">def notifyCallbacks(self):
+    for callback in self.callbacks:
+        callback(self.getInventoryCount())</pre>
+            <p>另一个改变是添加了<var>unregisted</var>方法。<var>StatusHandler</var>会在WebSocket连接关闭时调用该方法移除一个回调函数。</p>
+            <pre class="codelist-code">def unregister(self, callback):
+    self.callbacks.remove(callback)</pre>
+            <p>大部分改变是在继承自<var>tornado.websocket.WebSocketHandler</var>的<var>StatusHandler</var>类中的。WebSocket处理函数实现了<var>open</var>和<var>on_message</var>方法，分别在连接打开和接收到消息时被调用，而不是为每个HTTP方法实现处理函数。此外，<var>on_close</var>方法在连接被远程主机关闭时被调用。</p>
+            <pre class="codelist-code">class StatusHandler(tornado.websocket.WebSocketHandler):
+    def open(self):
+        self.application.shoppingCart.register(self.callback)
+
+    def on_close(self):
+        self.application.shoppingCart.unregister(self.callback)
+
+    def on_message(self, message):
+        pass
+
+    def callback(self, count):
+        self.write_message('{"inventoryCount":"%d"}' % count)</pre>
+            <p>在实现中，我们在一个新连接打开时使用<var>ShoppingCart</var>类注册了<var>callback</var>方法，并在连接关闭时注销了这个回调函数。因为我们依然使用了<var>CartHandler</var>类的HTTP API调用，因此不需要监听WebSocket连接中的新消息，所以<var>on_message</var>实现是空的。（我们覆写了<var>on_message</var>的默认实现以防止在我们接收消息时Tornado抛出<var>NotImplementedError</var>异常。）最后，<var>callback</var>方法在库存改变时向WebSocket连接写消息内容。</p>
+            <p>这个版本的JavaScript代码和之前的非常相似。我们只需要改变其中的<var>requestInventory</var>函数。我们使用HTML5 WebSocket API取代长轮询资源的AJAX请求。参见代码清单5-8.</p>
+            <div class="codelist">
+                <div class="codelist-title">代码清单5-8  WebSockets：inventory.js中新的requestInventory函数</div>
+                <pre class="codelist-code">function requestInventory() {
+    var host = 'ws://localhost:8000/cart/status';
+
+    var websocket = new WebSocket(host);
+
+    websocket.onopen = function (evt) { };
+    websocket.onmessage = function(evt) {
+        $('#count').html($.parseJSON(evt.data)['inventoryCount']);
+    };
+    websocket.onerror = function (evt) { };
+}</pre>
+            </div>
+            <p>在创建了一个到<var>ws://localhost:8000/cart/status</var>的心得WebSocket连接后，我们为每个希望响应的事件添加了处理函数。在这个例子中我们唯一关心的事件是<var>onmessage</var>，和之前版本的<var>requestInventory</var>函数一样更新<var>count</var>的内容。（轻微的不同是我们必须手工解析服务器送来的JSON对象。）</p>
+            <p>就像前面的例子一样，在购物者添加书籍到购物车时库存量会实时更新。不同之处在于一个持久的WebSocket连接取代了每次长轮询更新中重新打开的HTTP请求。</p>
+
+            <h3>5.3.3 WebSockets的未来</h3>
+            <p>WebSocket协议目前仍是草案，在它完成时可能还会修改。然而，因为这个规范已经被提交到IETF进行最终审查，相对而言不太可能会再面临重大的改变。正如本节开头所提到的那样，WebSocket的主要缺陷是目前只支持最新的一些浏览器。</p>
+            <p>尽管有上述警告，WebSockets仍然是在浏览器和服务器之间实现双向通信的一个有前途的新方法。当协议得到了广泛的支持后，我们将开始看到更加著名的应用的实现。</p>
 
             <div class="cite-description">
                 [1] 书中网页已不存在，替换为当前网址。<br />
+                [2] 下面的这组代码书中使用的不是前面的代码，这里为了保持一致修改为和前面的代码一样。<br />
             </div>
 
             <div class="footer">
