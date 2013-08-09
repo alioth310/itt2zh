@@ -1,12 +1,79 @@
 body {
     margin: 0 auto;
     padding: 0;
-    width: 980px;
+    width: 1080px;
     font: 14px/1.4 Arial, Helvetica, sans-serif;
 }
 
 .container {
     margin: 10px 30px;
+}
+
+.sidebar {
+	float: left;
+	width: 200px;
+	font-size: 90%;
+}
+
+.indextable {
+	position: fixed;
+	width: 195px;
+	padding-top: 28px;
+	*padding-top: 40px;
+	work-break: normal;
+	white-space: normal;
+}
+
+ul.index-chapter {
+	margin-left: -35px;
+	*margin-left: 0;
+}
+
+ul.index-section {
+	margin-left: -25px;
+	*margin-left:  12px;
+}
+
+ul.index-chapter li {
+	list-style: none outside none;
+	margin-left: 0;
+}
+
+ul.index-section li {
+	list-style: square outside none;
+	margin-left: 5px;
+}
+
+ul.index-chapter li a, ul.index-chapter li a:visited {
+	color: #777;
+}
+
+ul.index-section li a, ul.index-section li a:visited {
+	color: #000;
+}
+
+ul.index-chapter li a:hover, ul.index-section li a:hover {
+	color: #0095C4;
+	text-decoration: underline;
+}
+
+ul.index-chapter li a.current-chapter, ul.index-chapter li a.current-chapter:visited {
+	color: #000;
+}
+
+ul.index-chapter li a.current-chapter:hover {
+	color: #0095C4;
+}
+
+.article {
+	margin-left: 200px;
+	border-left: 1px solid #888;
+	padding: 0  20px;
+}
+
+.footer {
+    text-align: center;
+    margin-top: 40px;
 }
 
 .clearfix:before, .clearfix:after {
@@ -21,11 +88,6 @@ body {
 
 .clearfix {
     zoom: 1; /* IE < 8 */
-}
-
-.footer {
-    text-align: center;
-    margin-top: 40px;
 }
 
 h1 {
@@ -73,6 +135,20 @@ a, a:visited  {
 
 a:hover {
     color: #ff0000;
+}
+
+.headerlink {
+	margin-left: 5px;
+}
+
+a.headerlink {
+	color: #fff;
+}
+
+a.headerlink:hover {
+	background: #fff;
+	color: #BDB76A;
+
 }
 
 .figure {
@@ -185,4 +261,3 @@ pre {
 .indentation {
     margin-left: 25px;
 }
-
