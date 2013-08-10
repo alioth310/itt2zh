@@ -3,7 +3,8 @@ Introduction to Tornado 中文翻译
 
 如有翻译错误或不好的地方，请指出，我会及时修改。
 
-[《Introduction to Tornado》读书笔记](http://www.pythoner.com/260.html)
+读书笔记：[《Introduction to Tornado》读书笔记](http://www.pythoner.com/260.html)<br />
+在线阅读：[http://demo.pythoner.com/itt2zh](http://demo.pythoner.com/itt2zh)
 
 
 书籍信息
