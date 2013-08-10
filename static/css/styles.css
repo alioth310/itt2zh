@@ -11,17 +11,17 @@ body {
 
 .sidebar {
 	float: left;
-	width: 200px;
-	font-size: 90%;
+	width: 180px;
 }
 
 .indextable {
 	position: fixed;
-	width: 195px;
-	padding-top: 28px;
-	*padding-top: 40px;
+	width: 175px;
+	padding-top: 3px;
+	*padding-top: 20px;
 	work-break: normal;
 	white-space: normal;
+	font-size: 90%;
 }
 
 ul.index-chapter {
@@ -66,7 +66,7 @@ ul.index-chapter li a.current-chapter:hover {
 }
 
 .article {
-	margin-left: 200px;
+	margin-left: 180px;
 	border-left: 1px solid #888;
 	padding: 0  20px;
 }

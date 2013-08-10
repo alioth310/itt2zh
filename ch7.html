@@ -10,26 +10,54 @@
 
     <body>
         <div class="container">
-            <h1>第七章：外部服务认证</h1>
-            <p><a href="./ch6.html">第六章</a>的例子像我们展示了如何使用安全cookies和<var>tornado.web.authenticated</var>装饰器来实现一个简单的用户验证表单。在本章中，我们将着眼于如何对第三方服务进行身份验证。流行的Web API，比如Facebbok和Twitter，使用OAuth协议安全验证某人的身份，同时允许他们的用户保持第三方应用访问他们个人信息的控制权。Tornado提供了一些Python mix-in来帮助开发者验证外部服务，既包括显式地支持流行服务，也包括通过通用的OAuth支持。在本章中，我们将探讨两个使用Tornado的<var>auth</var>模块的示例应用：一个连接Twitter，另一个连接Facebook。</p>
 
-            <h2>7.1 Tornado的auth模块</h2>
-            <p>作为一个Web应用开发者，你可能想让用户直接通过你的应用在Twitter上发表更新或读取最新的Facebook状态。大多数社交网络和单一登录的API为验证你应用中的用户提供了一个标准的流程。Tornado的<var>auth</var>模块为OpenID、OAuth、OAuth 2.0、Twitter、FriendFeed、Google OpenID、Facebook REST API和Facebook Graph API提供了相应的类。尽管你可以自己实现对于特定外部服务认证过程的处理，不过Tornado的<var>auth</var>模块为连接任何支持的服务开发应用提供了简单的工作流程。</p>
+            <div class="sidebar">
+                <div class="indextable">
+                    <ul class="index-chapter">
+                        <li><a href="./index.html">索引页</a></li>
+                        <li><a href="./ch1.html">第一章：引言</a></li>
+                        <li><a href="./ch2.html">第二章：表单和模板</a></li>
+                        <li><a href="./ch3.html">第三章：模板扩展</a></li>
+                        <li><a href="./ch4.html">第四章：数据库</a></li>
+                        <li><a href="./ch5.html">第五章：异步Web服务</a></li>
+                        <li><a href="./ch6.html">第六章：编写安全应用</a></li>
+                        <li><a href="./ch7.html" class="current-chapter">第七章：外部服务认证</a></li>
+                        <ul class="index-section">
+                            <li><a href="#ch7-1">7.1 Tornado的auth模块</a></li>
+                            <ul class="index-section">
+                                <li><a href="#ch7-1-1">7.1.1 认证流程</a></li>
+                                <li><a href="#ch7-1-2">7.1.2 异步请求</a></li>
+                            </ul>
+                            <li><a href="#ch7-2">7.2 示例：登录Twitter</a></li>
+                            <li><a href="#ch7-3">7.3 示例：Facebook认证和Graph API</a></li>
+                        </ul>
+                        <li><a href="./ch8.html">第八章：部署Tornado</a></li>
+                    </ul>
+                </div>
+            </div>
 
-            <h3>7.1.1 认证流程</h3>
-            <p>这些认证方法的工作流程虽然有一些轻微的不同，但对于大多数而言，都使用了<var>authorize_redirect</var>和<var>get_authenticated_user</var>方法。<var>authorize_rediect</var>方法用来将一个未授权用户重定向到外部服务的验证页面。在验证页面中，用户登录服务，并让你的应用拥有访问他账户的权限。通常情况下，你会在用户带着一个临时访问码返回你的应用时使用<var>get_authenticated_user</var>方法。调用<var>get_authenticated_user</var>方法会把授权跳转过程提供的临时凭证替换成属于用户的长期凭证。Twitter、Facebook、FriendFeed和Google的具体验证类提供了他们自己的函数来使API调用它们的服务。</p>
+            <div class="article">
+                <h1>第七章：外部服务认证<a class="headerlink" id="ch7" href="#ch7">&para;</a></h1>
 
-            <h3>7.1.2 异步请求</h3>
-            <p>关于<var>auth</var>模块需要注意的一件事是它使用了Tornado的异步HTTP请求。正如我们在<a href="./ch5.html">第五章</a>所看到的，异步HTTP请求允许Tornado服务器在一个挂起的请求等待传出请求返回时处理传入的请求。</p>
-            <p>我们将简单的看下如何使用异步请求，然后在一个例子中使用它们进行深入。每个发起异步调用的处理方法必须在它前面加上<var>@tornado.web.asynchronous</var>装饰器。</p>
+                <p><a href="./ch6.html">第六章</a>的例子像我们展示了如何使用安全cookies和<var>tornado.web.authenticated</var>装饰器来实现一个简单的用户验证表单。在本章中，我们将着眼于如何对第三方服务进行身份验证。流行的Web API，比如Facebbok和Twitter，使用OAuth协议安全验证某人的身份，同时允许他们的用户保持第三方应用访问他们个人信息的控制权。Tornado提供了一些Python mix-in来帮助开发者验证外部服务，既包括显式地支持流行服务，也包括通过通用的OAuth支持。在本章中，我们将探讨两个使用Tornado的<var>auth</var>模块的示例应用：一个连接Twitter，另一个连接Facebook。</p>
 
-            <h2>7.2 示例：登录Twitter</h2>
-            <p>让我们来看一个使用Twitter API验证用户的例子。这个应用将重定向一个没有登录的用户到Twitter的验证页面，提示用户输入用户名和密码。然后Twitter会将用户重定向到你在Twitter应用设置页指定的URL。</p>
-            <p>首先，你必须在Twitter注册一个新应用。如果你还没有应用，可以从<a href="https://dev.twitter.com/">Twitter开发者网站</a>的"Create a new application"链接开始。一旦你创建了你的Twitter应用，你将被指定一个access token和一个secret来标识你在Twitter上的应用。你需要在本节下面代码的合适位置填充那些值。</p>
-            <p>现在让我们看看代码清单7-1中的代码。</p>
-            <div class="codelist">
-                <div class="codelist-title">代码清单7-1  查看Twitter时间轴：twitter.py</div>
-                <pre class="codelist-code">import tornado.web
+                <h2>7.1 Tornado的auth模块<a class="headerlink" id="ch7-1" href="#ch7-1">&para;</a></h2>
+                <p>作为一个Web应用开发者，你可能想让用户直接通过你的应用在Twitter上发表更新或读取最新的Facebook状态。大多数社交网络和单一登录的API为验证你应用中的用户提供了一个标准的流程。Tornado的<var>auth</var>模块为OpenID、OAuth、OAuth 2.0、Twitter、FriendFeed、Google OpenID、Facebook REST API和Facebook Graph API提供了相应的类。尽管你可以自己实现对于特定外部服务认证过程的处理，不过Tornado的<var>auth</var>模块为连接任何支持的服务开发应用提供了简单的工作流程。</p>
+
+                <h3>7.1.1 认证流程<a class="headerlink" id="ch7-1-1" href="#ch7-1-1">&para;</a></h3>
+                <p>这些认证方法的工作流程虽然有一些轻微的不同，但对于大多数而言，都使用了<var>authorize_redirect</var>和<var>get_authenticated_user</var>方法。<var>authorize_rediect</var>方法用来将一个未授权用户重定向到外部服务的验证页面。在验证页面中，用户登录服务，并让你的应用拥有访问他账户的权限。通常情况下，你会在用户带着一个临时访问码返回你的应用时使用<var>get_authenticated_user</var>方法。调用<var>get_authenticated_user</var>方法会把授权跳转过程提供的临时凭证替换成属于用户的长期凭证。Twitter、Facebook、FriendFeed和Google的具体验证类提供了他们自己的函数来使API调用它们的服务。</p>
+
+                <h3>7.1.2 异步请求<a class="headerlink" id="ch7-1-2" href="#ch7-1-2">&para;</a></h3>
+                <p>关于<var>auth</var>模块需要注意的一件事是它使用了Tornado的异步HTTP请求。正如我们在<a href="./ch5.html">第五章</a>所看到的，异步HTTP请求允许Tornado服务器在一个挂起的请求等待传出请求返回时处理传入的请求。</p>
+                <p>我们将简单的看下如何使用异步请求，然后在一个例子中使用它们进行深入。每个发起异步调用的处理方法必须在它前面加上<var>@tornado.web.asynchronous</var>装饰器。</p>
+
+                <h2>7.2 示例：登录Twitter<a class="headerlink" id="ch7-2" href="#ch7-2">&para;</a></h2>
+                <p>让我们来看一个使用Twitter API验证用户的例子。这个应用将重定向一个没有登录的用户到Twitter的验证页面，提示用户输入用户名和密码。然后Twitter会将用户重定向到你在Twitter应用设置页指定的URL。</p>
+                <p>首先，你必须在Twitter注册一个新应用。如果你还没有应用，可以从<a href="https://dev.twitter.com/">Twitter开发者网站</a>的"Create a new application"链接开始。一旦你创建了你的Twitter应用，你将被指定一个access token和一个secret来标识你在Twitter上的应用。你需要在本节下面代码的合适位置填充那些值。</p>
+                <p>现在让我们看看代码清单7-1中的代码。</p>
+                <div class="codelist">
+                    <div class="codelist-title">代码清单7-1  查看Twitter时间轴：twitter.py</div>
+                    <pre class="codelist-code">import tornado.web
 import tornado.httpserver
 import tornado.auth
 import tornado.ioloop
@@ -103,11 +131,11 @@ if __name__ == '__main__':
     server = tornado.httpserver.HTTPServer(app)
     server.listen(8000)
     tornado.ioloop.IOLoop.instance().start()</pre>
-            </div>
-            <p>代码清单7-2和7-3的模板文件应该被放在应用的<span class="filename">templates</span>目录下。</p>
-            <div class="codelist">
-                <div class="codelist-title">代码清单7-2  Twitter时间轴：home.html</div>
-                <pre class="codelist-code">&lt;html&gt;
+                </div>
+                <p>代码清单7-2和7-3的模板文件应该被放在应用的<span class="filename">templates</span>目录下。</p>
+                <div class="codelist">
+                    <div class="codelist-title">代码清单7-2  Twitter时间轴：home.html</div>
+                    <pre class="codelist-code">&lt;html&gt;
     &lt;head&gt;
         &lt;title&gt;{{ user['name'] }} ({{ user['screen_name'] }}) on Twitter&lt;/title&gt;
     &lt;/head&gt;
@@ -141,11 +169,11 @@ if __name__ == '__main__':
         {% end %}
     &lt;/body&gt;
 &lt;/html&gt;</pre>
-            </div>
-            <p></p>
-            <div class="codelist">
-                <div class="codelist-title">代码清单7-3  Twitter时间轴：logout.html</div>
-                <pre class="codelist-code">&lt;html&gt;
+                </div>
+                <p></p>
+                <div class="codelist">
+                    <div class="codelist-title">代码清单7-3  Twitter时间轴：logout.html</div>
+                    <pre class="codelist-code">&lt;html&gt;
     &lt;head&gt;
         &lt;title&gt;Tornadoes on Twitter&lt;/title&gt;
     &lt;/head&gt;
@@ -157,16 +185,16 @@ if __name__ == '__main__':
         &lt;/div&gt;
     &lt;/body&gt;
 &lt;/html&gt;</pre>
-            </div>
-            <p>让我们分块进行分析，首先从<span class="filename">twitter.py</span>开始。在<var>Application</var>类的<var>__init__</var>方法中，你将注意到有两个新的键出现在设置字典中：<var>twitter_consumer_key</var>和<var>twitter_consumer_secret</var>。它们需要被设置为你的Twitter应用详细设置页面中列出的值。同样，你还会注意到我们声明了两个处理程序：<var>TwitterHandler</var>和<Var>LogoutHandler</var>。让我们立刻看看这两个类吧。</p>
-            <p><var>TwitterHandler</var>类包含我们应用逻辑的主要部分。有两件事情需要立刻引起我们的注意，其一是这个类继承自能给我们提供Twitter功能的<var>tornado.auth.TwitterMixin</var>类，其二是<var>get</var>方法使用了我们在<a href="./ch5.html">第五章</a>中讨论的<var>@tornado.web.asynchronous</var>装饰器。现在让我们看看第一个异步调用：</p>
-            <pre class="codelist-code">if self.get_argument('oauth_token', None):
+                </div>
+                <p>让我们分块进行分析，首先从<span class="filename">twitter.py</span>开始。在<var>Application</var>类的<var>__init__</var>方法中，你将注意到有两个新的键出现在设置字典中：<var>twitter_consumer_key</var>和<var>twitter_consumer_secret</var>。它们需要被设置为你的Twitter应用详细设置页面中列出的值。同样，你还会注意到我们声明了两个处理程序：<var>TwitterHandler</var>和<Var>LogoutHandler</var>。让我们立刻看看这两个类吧。</p>
+                <p><var>TwitterHandler</var>类包含我们应用逻辑的主要部分。有两件事情需要立刻引起我们的注意，其一是这个类继承自能给我们提供Twitter功能的<var>tornado.auth.TwitterMixin</var>类，其二是<var>get</var>方法使用了我们在<a href="./ch5.html">第五章</a>中讨论的<var>@tornado.web.asynchronous</var>装饰器。现在让我们看看第一个异步调用：</p>
+                <pre class="codelist-code">if self.get_argument('oauth_token', None):
     self.get_authenticated_user(self.async_callback(self._twitter_on_auth))
     return</pre>
-            <p>当一个用户请求我们应用的根目录时，我们首先检查请求是否包括一个<var>oauth_token</var>查询字符串参数。如果有，我们把这个请求看作是一个来自Twitter验证过程的回调。</p>
-            <p>然后，我们使用<var>auth</var>模块的<var>get_authenticated</var>方法把给我们的临时令牌换为用户的访问令牌。这个方法期待一个回调函数作为参数，在这里是<var>self._teitter_on_auth</var>方法。当到Twitter的API请求返回时，执行回调函数，我们在代码更靠下的地方对其进行了定义。</p>
-            <p>如果<var>oauth_token</var>参数没有被发现，我们继续测试是否之前已经看到过这个特定用户了。</p>
-            <pre class="codelist-code">elif oAuthToken and oAuthSecret:
+                <p>当一个用户请求我们应用的根目录时，我们首先检查请求是否包括一个<var>oauth_token</var>查询字符串参数。如果有，我们把这个请求看作是一个来自Twitter验证过程的回调。</p>
+                <p>然后，我们使用<var>auth</var>模块的<var>get_authenticated</var>方法把给我们的临时令牌换为用户的访问令牌。这个方法期待一个回调函数作为参数，在这里是<var>self._teitter_on_auth</var>方法。当到Twitter的API请求返回时，执行回调函数，我们在代码更靠下的地方对其进行了定义。</p>
+                <p>如果<var>oauth_token</var>参数没有被发现，我们继续测试是否之前已经看到过这个特定用户了。</p>
+                <pre class="codelist-code">elif oAuthToken and oAuthSecret:
     accessToken = {
         'key': oAuthToken,
         'secret': oAuthSecret
@@ -177,11 +205,11 @@ if __name__ == '__main__':
         callback=self.async_callback(self._twitter_on_user)
     )
     return</pre>
-            <p>这段代码片段寻找我们应用在Twitter给定一个合法用户时设置的<var>access_key</var>和<var>access_secret</var> cookies。如何这个值被设置了，我们就用key和secret组装访问令牌，然后使用<var>self.twitter_request</var>方法来向Twitter API的<var>/users/show</var>发出请求。在这里，你会再一次看到异步回调函数，这次是我们稍后将要定义的<var>self._twitter_on_user</var>方法。</p>
-            <p><var>twitter_quest</var>方法期待一个路径地址作为它的第一个参数，另外还有一些可选的关键字参数，如<var>access_token</var>、<var>post_args</var>和<var>callback</var>。<var>access_token</var>参数应该是一个字典，包括用户OAuth访问令牌的<var>key</var>键，和用户OAuth secret的<var>secret</var>键。</p>
-            <p>如果API调用使用了<dfn>POST</dfn>方法，请求参数需要绑定一个传递<var>post_args</var>参数的字典。查询字符串参数在方法调用时只需指定为一个额外的关键字参数。在<var>/users/show</var> API调用时，我们使用了HTTP <dfn>GET</dfn>请求，所以这里不需要<var>post_args</var>参数，而所需的<var>user_id</var> API参数被作为关键字参数传递进来。</p>
-            <p>如果上面我们讨论的情况都没有发生，这说明用户是首次访问我们的应用（或者已经注销或删除了cookies），此时我们想将其重定向到Twitter的验证页面。调用<var>self.authorize_redirect()</var>来完成这项工作。</p>
-            <pre class="codelist-code">def _twitter_on_auth(self, user):
+                <p>这段代码片段寻找我们应用在Twitter给定一个合法用户时设置的<var>access_key</var>和<var>access_secret</var> cookies。如何这个值被设置了，我们就用key和secret组装访问令牌，然后使用<var>self.twitter_request</var>方法来向Twitter API的<var>/users/show</var>发出请求。在这里，你会再一次看到异步回调函数，这次是我们稍后将要定义的<var>self._twitter_on_user</var>方法。</p>
+                <p><var>twitter_quest</var>方法期待一个路径地址作为它的第一个参数，另外还有一些可选的关键字参数，如<var>access_token</var>、<var>post_args</var>和<var>callback</var>。<var>access_token</var>参数应该是一个字典，包括用户OAuth访问令牌的<var>key</var>键，和用户OAuth secret的<var>secret</var>键。</p>
+                <p>如果API调用使用了<dfn>POST</dfn>方法，请求参数需要绑定一个传递<var>post_args</var>参数的字典。查询字符串参数在方法调用时只需指定为一个额外的关键字参数。在<var>/users/show</var> API调用时，我们使用了HTTP <dfn>GET</dfn>请求，所以这里不需要<var>post_args</var>参数，而所需的<var>user_id</var> API参数被作为关键字参数传递进来。</p>
+                <p>如果上面我们讨论的情况都没有发生，这说明用户是首次访问我们的应用（或者已经注销或删除了cookies），此时我们想将其重定向到Twitter的验证页面。调用<var>self.authorize_redirect()</var>来完成这项工作。</p>
+                <pre class="codelist-code">def _twitter_on_auth(self, user):
     if not user:
         self.clear_all_cookies()
         raise tornado.web.HTTPError(500, 'Twitter authentication failed')
@@ -191,26 +219,26 @@ if __name__ == '__main__':
     self.set_secure_cookie('oauth_secret', user['access_token']['secret'])
 
     self.redirect('/')</pre>
-            <p>我们的Twitter请求的回调方法非常的直接。<var>_twitter_on_auth</var>使用一个<var>user</var>参数进行调用，这个参数是已授权用户的用户数据字典。我们的方法实现只需要验证我们接收到的用户是否合法，并设置应有的cookies。一旦cookies被设置好，我们将用户重定向到根目录，即我们之前谈论的发起请求到<var>/users/show</var> API方法。</p>
-            <pre class="codelist-code">def _twitter_on_user(self, user):
+                <p>我们的Twitter请求的回调方法非常的直接。<var>_twitter_on_auth</var>使用一个<var>user</var>参数进行调用，这个参数是已授权用户的用户数据字典。我们的方法实现只需要验证我们接收到的用户是否合法，并设置应有的cookies。一旦cookies被设置好，我们将用户重定向到根目录，即我们之前谈论的发起请求到<var>/users/show</var> API方法。</p>
+                <pre class="codelist-code">def _twitter_on_user(self, user):
     if not user:
         self.clear_all_cookies()
         raise tornado.web.HTTPError(500, "Couldn't retrieve user information")
 
     self.render('home.html', user=user)</pre>
-            <p><var>_twitter_on_user</var>方法是我们在<var>twitter_request</var>方法中指定调用的回调函数。当Twitter响应用户的个人信息时，我们的回调函数使用响应的数据渲染<span class="filename">home.html</span>模板。这个模板展示了用户的个人图像、用户名、详细信息、一些关注和粉丝的统计信息以及用户最新的状态更新。</p>
-            <p><var>LogoutHandler</var>方法只是清除了我们为应用用户存储的cookies。它渲染了<span class="filename">logout.html</span>模板，来给用户提供反馈，并跳转到Twitter验证页面允许其重新登录。就是这些！</p>
-            <p>我们刚才看到的Twitter应用只是为一个授权用户展示了用户信息，但它同时也说明了Tornado的<var>auth</var>模块是如何使开发社交应用更简单的。创建一个在Twitter上发表状态的应用作为一个练习留给读者。</p>
+                <p><var>_twitter_on_user</var>方法是我们在<var>twitter_request</var>方法中指定调用的回调函数。当Twitter响应用户的个人信息时，我们的回调函数使用响应的数据渲染<span class="filename">home.html</span>模板。这个模板展示了用户的个人图像、用户名、详细信息、一些关注和粉丝的统计信息以及用户最新的状态更新。</p>
+                <p><var>LogoutHandler</var>方法只是清除了我们为应用用户存储的cookies。它渲染了<span class="filename">logout.html</span>模板，来给用户提供反馈，并跳转到Twitter验证页面允许其重新登录。就是这些！</p>
+                <p>我们刚才看到的Twitter应用只是为一个授权用户展示了用户信息，但它同时也说明了Tornado的<var>auth</var>模块是如何使开发社交应用更简单的。创建一个在Twitter上发表状态的应用作为一个练习留给读者。</p>
 
-            <h2>7.3 示例：Facebook认证和Graph API</h2>
-            <p>Facebook的这个例子在结构上和刚才看到的Twitter的例子非常相似。Facebook有两种不同的API标准，原始的REST API和Facebook Graph API。目前两种API都被支持，但Graph API被推荐作为开发新Facebook应用的方式。Tornado在<var>auth</var>模块中支持这两种API，但在这个例子中我们将关注Graph API。</p>
-            <p>为了开始这个例子，你需要登录到Facebook的<a href="https://developers.facebook.com">开发者网站</a>，并创建一个新的应用。你将需要填写应用的名称，并证明你不是一个机器人。为了从你自己的域名中验证用户，你还需要指定你应用的域名。然后点击"Select how your app integrates with Facbook"下的"Website"。同时你需要输入你网站的URL。要获得完整的创建Facebook应用的手册，可以从<a href="https://developers.facebook.com/docs/guides/web/">https://developers.facebook.com/docs/guides/web/</a>开始。</p>
-            <p>你的应用建立好之后，你将使用基本设置页面的应用ID和secret来连接Facebook Graph API。</p>
-            <p>回想一下上一节的提到的单一登录工作流程，它将引导用户到Facebook平台验证应用，Facebook将使用一个HTTP重定向将一个带有验证码的用户返回给你的服务器。一旦你接收到含有这个认证码的请求，你必须请求用于标识API请求用户身份的验证令牌。</p>
-            <p>这个例子将渲染用户的时间轴，并允许用户通过我们的接口更新她的Facebook状态。让我们看下代码清单7-4。</p>
-            <div class="codelist">
-                <div class="codelist-title">代码清单7-4  Facebook验证：facebook.py</div>
-                <pre class="codelist-code">import tornado.web
+                <h2>7.3 示例：Facebook认证和Graph API<a class="headerlink" id="ch7-3" href="#ch7-3">&para;</a></h2>
+                <p>Facebook的这个例子在结构上和刚才看到的Twitter的例子非常相似。Facebook有两种不同的API标准，原始的REST API和Facebook Graph API。目前两种API都被支持，但Graph API被推荐作为开发新Facebook应用的方式。Tornado在<var>auth</var>模块中支持这两种API，但在这个例子中我们将关注Graph API。</p>
+                <p>为了开始这个例子，你需要登录到Facebook的<a href="https://developers.facebook.com">开发者网站</a>，并创建一个新的应用。你将需要填写应用的名称，并证明你不是一个机器人。为了从你自己的域名中验证用户，你还需要指定你应用的域名。然后点击"Select how your app integrates with Facbook"下的"Website"。同时你需要输入你网站的URL。要获得完整的创建Facebook应用的手册，可以从<a href="https://developers.facebook.com/docs/guides/web/">https://developers.facebook.com/docs/guides/web/</a>开始。</p>
+                <p>你的应用建立好之后，你将使用基本设置页面的应用ID和secret来连接Facebook Graph API。</p>
+                <p>回想一下上一节的提到的单一登录工作流程，它将引导用户到Facebook平台验证应用，Facebook将使用一个HTTP重定向将一个带有验证码的用户返回给你的服务器。一旦你接收到含有这个认证码的请求，你必须请求用于标识API请求用户身份的验证令牌。</p>
+                <p>这个例子将渲染用户的时间轴，并允许用户通过我们的接口更新她的Facebook状态。让我们看下代码清单7-4。</p>
+                <div class="codelist">
+                    <div class="codelist-title">代码清单7-4  Facebook验证：facebook.py</div>
+                    <pre class="codelist-code">import tornado.web
 import tornado.httpserver
 import tornado.auth
 import tornado.ioloop
@@ -300,34 +328,34 @@ class Application(tornado.web.Application):
         handlers = [
             (r'/', FeedHandler),
             (r'/auth/login', LoginHandler),
-            (r'/auth/logout', LogoutHandler)
-        ]
+                (r'/auth/logout', LogoutHandler)
+            ]
 
-        settings = {
-            'facebook_api_key': '2040 ... 8759',
-            'facebook_secret': 'eae0 ... 2f08',
-            'cookie_secret': 'NTliOTY5NzJkYTVlMTU0OTAwMTdlNjgzMTA5M2U3OGQ5NDIxZmU3Mg==',
-            'template_path': 'templates',
-            'ui_modules': {'FeedListItem': FeedListItem}
-        }
+            settings = {
+                'facebook_api_key': '2040 ... 8759',
+                'facebook_secret': 'eae0 ... 2f08',
+                'cookie_secret': 'NTliOTY5NzJkYTVlMTU0OTAwMTdlNjgzMTA5M2U3OGQ5NDIxZmU3Mg==',
+                'template_path': 'templates',
+                'ui_modules': {'FeedListItem': FeedListItem}
+            }
 
-        tornado.web.Application.__init__(self, handlers, **settings)
+            tornado.web.Application.__init__(self, handlers, **settings)
 
-if __name__ == '__main__':
-    tornado.options.parse_command_line()
+    if __name__ == '__main__':
+        tornado.options.parse_command_line()
 
-    app = Application()
-    server = tornado.httpserver.HTTPServer(app)
-    server.listen(8000)
-    tornado.ioloop.IOLoop.instance().start()</pre>
-            </div>
-            <p>我们将按照访客与应用交互的顺序来讲解这些处理。当请求根URL时，<var>FeedHandler</var>将寻找<var>access_token</var> cookie。如果这个cookie不存在，用户会被重定向到<var>/auth/login</var> URL。</p>
-            <p>登录页面使用了<var>authorize_redirect</var>方法来讲用户重定向到Facebook的验证对话框，如果需要的话，用户在这里登录Facebook，审查应用程序请求的权限，并批准应用。在点击"Approve"之后，她将被跳转回应用在<var>authorize_redirect</var>调用中<var>redirect_uri</var>指定的URL。</p>
-            <p>当从Facebook验证页面返回后，到<var>/auth/login</var>的请求将包括一个<var>code</var>参数作为查询字符串参数。这个码是一个用于换取永久凭证的临时令牌。如果发现了<var>code</var>参数，应用将发出一个Facebook Graph API请求来取得认证的用户，并存储她的用户ID、全名和访问令牌，以便在应用发起Graph API调用时标识该用户。</p>
-            <p>存储了这些值之后，用户被重定向到根URL。用户这次回到根页面时，将取得最新Facebook消息列表。应用查看<var>access_cookie</var>是否被设置，并使用<var>facebook_request</var>方法向Graph API请求用户订阅。我们把OAuth令牌传递给<var>facebook_request</var>方法，此外，这个方法还需要一个回调函数参数--在代码清单7-4中，它是<var>_on_facebook_user_feed</var>方法。</p>
-            <div class="codelist">
-                <div class="codelist-title">代码清单7-5  Facebook验证：home.html</div>
-                <pre class="codelist-code">&lt;html&gt;
+        app = Application()
+        server = tornado.httpserver.HTTPServer(app)
+        server.listen(8000)
+        tornado.ioloop.IOLoop.instance().start()</pre>
+                </div>
+                <p>我们将按照访客与应用交互的顺序来讲解这些处理。当请求根URL时，<var>FeedHandler</var>将寻找<var>access_token</var> cookie。如果这个cookie不存在，用户会被重定向到<var>/auth/login</var> URL。</p>
+                <p>登录页面使用了<var>authorize_redirect</var>方法来讲用户重定向到Facebook的验证对话框，如果需要的话，用户在这里登录Facebook，审查应用程序请求的权限，并批准应用。在点击"Approve"之后，她将被跳转回应用在<var>authorize_redirect</var>调用中<var>redirect_uri</var>指定的URL。</p>
+                <p>当从Facebook验证页面返回后，到<var>/auth/login</var>的请求将包括一个<var>code</var>参数作为查询字符串参数。这个码是一个用于换取永久凭证的临时令牌。如果发现了<var>code</var>参数，应用将发出一个Facebook Graph API请求来取得认证的用户，并存储她的用户ID、全名和访问令牌，以便在应用发起Graph API调用时标识该用户。</p>
+                <p>存储了这些值之后，用户被重定向到根URL。用户这次回到根页面时，将取得最新Facebook消息列表。应用查看<var>access_cookie</var>是否被设置，并使用<var>facebook_request</var>方法向Graph API请求用户订阅。我们把OAuth令牌传递给<var>facebook_request</var>方法，此外，这个方法还需要一个回调函数参数--在代码清单7-4中，它是<var>_on_facebook_user_feed</var>方法。</p>
+                <div class="codelist">
+                    <div class="codelist-title">代码清单7-5  Facebook验证：home.html</div>
+                    <pre class="codelist-code">&lt;html&gt;
     &lt;head&gt;
         &lt;title&gt;{{ name }} on Facebook&lt;/title&gt;
     &lt;/head&gt;
@@ -349,10 +377,11 @@ if __name__ == '__main__':
         {% end %}
     &lt;/body&gt;
 &lt;/html&gt;</pre>
+                </div>
+                <p>当包含来自Facebook的用户订阅消息的响应的回调函数被调用时，应用渲染<span class="filename">home.html</span>模板，其中使用了<var>FeedListItem</var>这个UI模块来渲染列表中的每个条目。在模板开始处，我们渲染了一个表单，可以用<var>message</var>参数post到我们服务器的/resource。应用发送这个调用给Graph API来发表一个更新。</p>
+                <p>为了发表更新，我们再次使用了<var>facebook_request</var>方法。这次，除了<var>access_token</var>参数之外，我们还包括了一个<var>post_args</var>参数，这个参数是一个成为Graph请求post主体的参数字典。当调用成功时，我们将用户重定向回首页，并请求更新后的时间轴。</p>
+                <p>正如你所看到的，Tornado的<var>auth</var>模块提供的Facebook验证类包括很多构建Facebook应用时非常有用的功能。这不仅在原型设计中是一笔巨大的财富，同时也非常适合是生产中的应用。</p>
             </div>
-            <p>当包含来自Facebook的用户订阅消息的响应的回调函数被调用时，应用渲染<span class="filename">home.html</span>模板，其中使用了<var>FeedListItem</var>这个UI模块来渲染列表中的每个条目。在模板开始处，我们渲染了一个表单，可以用<var>message</var>参数post到我们服务器的/resource。应用发送这个调用给Graph API来发表一个更新。</p>
-            <p>为了发表更新，我们再次使用了<var>facebook_request</var>方法。这次，除了<var>access_token</var>参数之外，我们还包括了一个<var>post_args</var>参数，这个参数是一个成为Graph请求post主体的参数字典。当调用成功时，我们将用户重定向回首页，并请求更新后的时间轴。</p>
-            <p>正如你所看到的，Tornado的<var>auth</var>模块提供的Facebook验证类包括很多构建Facebook应用时非常有用的功能。这不仅在原型设计中是一笔巨大的财富，同时也非常适合是生产中的应用。</p>
 
             <div class="footer">
                 <small>&copy; 本文由<a href="http://www.pythoner.com">你像从前一样</a>翻译，转载请注明出处。本书版权由原作者拥有。</small>
