@@ -216,9 +216,9 @@ class WelcomeHandler(BaseHandler):
 
 class LogoutHandler(BaseHandler):
     def get(self):
-    if (self.get_argument("logout", None)):
-        self.clear_cookie("username")
-        self.redirect("/")
+        if (self.get_argument("logout", None)):
+            self.clear_cookie("username")
+            self.redirect("/")
 
 if __name__ == "__main__":
     tornado.options.parse_command_line()
