@@ -259,7 +259,7 @@ class FrobHandler(tornado.web.RequestHandler):
         self.write(frob.serialize())</pre>
                 
                 <h4>1.2.3.2 HTTP状态码<a class="headerlink" id="ch1-2-3-2" href="#ch1-2-3-2">&para;</a></h4>
-                <p>从上面的代码可以看出，你可以使用<var>RequestHandler</var>类的<var>ser_status()</var>方法显式地设置HTTP状态码。然而，你需要记住在某些情况下，Tornado会自动地设置HTTP状态码。下面是一个常用情况的纲要：</p>
+                <p>从上面的代码可以看出，你可以使用<var>RequestHandler</var>类的<var>set_status()</var>方法显式地设置HTTP状态码。然而，你需要记住在某些情况下，Tornado会自动地设置HTTP状态码。下面是一个常用情况的纲要：</p>
                 <h5>404 Not Found</h5>
                 <p class="indentation">Tornado会在HTTP请求的路径无法匹配任何<var>RequestHandler</var>类相对应的模式时返回404（Not Found）响应码。</p>
                 <h5>400 Bad Request</h5>
