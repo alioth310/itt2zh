@@ -363,6 +363,15 @@ if __name__ == '__main__':
 &lt;/html&gt;</pre>
                 </div>
                 <p>最后，将代码清单2-7中的内容写到<span class="filename">static</span>子目录下的<span class="filename">style.css</span>文件中。</p>
+                <div class="codelist">
+                    <div class="codelist-title">代码清单2-5  Alpha Munger表单：index.html</div>
+                    <pre class="codelist-code">body {
+    font-family: Helvetica,Arial,sans-serif;
+    width: 600px;
+    margin: 0 auto;
+}
+.replaced:hover { color: #00f; }</pre>
+                </div>
 
                 <h3>2.3.1 它如何工作<a class="headerlink" id="ch2-3-1" href="#ch2-3-1">&para;</a></h3>
                 <p>这个Tornado应用定义了两个请求处理类：<var>IndexHandler</var>和<var>MungedPageHandler</var>。<var>IndexHandler</var>类简单地渲染了<span class="filename">index.html</span>中的模板，其中包括一个允许用户<dfn>POST</dfn>一个源文本（在<var>source</var>域中）和一个替换文本（在<var>change</var>域中）到<code>/poem</code>的表单。</p>
