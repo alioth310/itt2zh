@@ -156,7 +156,7 @@ server {
 
                 <h2>8.3 使用Supervisor监控Tornado进程<a class="headerlink" id="ch8-3" href="#ch8-3">&para;</a></h2>
                 <p>正如8.2节中埋下的伏笔，我们将在我们的Tornado应用中运行多个实例以充分利用现代的多处理器和多核服务器架构。开发团队大多传闻每个核运行一个Tornado进程。但是，正如我们所知道的，大量的传闻并不代表事实，所以你的结果可能不同。在本节中，我们将讨论在UNIX系统中管理多个Tornado实例的策略。</p>
-                <p>到目前为止，我们都是在命令行中运行Tornado服务器的，就像<code>$ <kbd>python main.py --port=8000</kbd></code>。但是，再擦河南刮起的生产部署中，这是不可管理的。因为我们为每个CPU核心运行一个独立的Tornado进程，因此有很多进程需要监控和控制。<span class="term">supervisor</span>守护进程可以帮助我们完成这个任务。</p>
+                <p>到目前为止，我们都是在命令行中运行Tornado服务器的，就像<code>$ <kbd>python main.py --port=8000</kbd></code>。但是，在长期的生产部署中，这是不可管理的。因为我们为每个CPU核心运行一个独立的Tornado进程，因此有很多进程需要监控和控制。<span class="term">supervisor</span>守护进程可以帮助我们完成这个任务。</p>
                 <p>Supervisor的设计是每次开机时启动其配置文件中列出的进程。这里，我们将看到管理我们在Nginx配置文件中作为上游主机提到的四个Tornado实例的Supervisor配置。典型的<span class="filename">supervisord.conf</span>文件中包含了全局的配置指令，并加载<span class="filename">conf.d</span>目录下的其他配置文件。代码清单8-4展示了我们想启动的Tornado进程的配置文件。</p>
                 <div class="codelist">
                     <div class="codelist-title">代码清单8-4  tornado.conf</div>
