@@ -106,7 +106,7 @@ if __name__ == "__main__":
         "cookie_secret": "bZJc2sWbQLKos6GkHn/VB9oXwQt8S0R0kRvJ5/xJ89E="
     }
 
-    application = tornado.web.Application([
+    application = tortnado.web.Application([
         (r'/', MainHandler)
     ], **settings)
 
@@ -127,7 +127,7 @@ if __name__ == "__main__":
                 <h4>6.1.2.2 HTTP-Only和SSL Cookies<a class="headerlink" id="ch6-1-2-2" href="#ch6-1-2-2">&para;</a></h4>
                 <p>Tornado的cookie功能依附于Python内建的<var>Cookie</var>模块。因此，我们可以利用它所提供的一些安全功能。这些安全属性是HTTP cookie规范的一部分，并在它可能是如何暴露其值给它连接的服务器和它运行的脚本方面给予浏览器指导。比如，我们可以通过只允许SSL连接的方式减少cookie值在网络中被截获的可能性。我们也可以让浏览器对JavaScript隐藏cookie值。</p>
                 <p>为cookie设置<var>secure</var>属性来指示浏览器只通过SSL连接传递cookie。（这可能会产生一些困扰，但这不是Tornado的安全cookies，更精确的说那种方法应该被称为<em>签名</em>cookies。）从Python 2.6版本开始，<var>Cookie</var>对象还提供了一个<var>httponly</var>属性。包括这个属性指示浏览器对于JavaScript不可访问cookie，这可以防范来自读取cookie值的跨站脚本攻击。</p>
-                <p>为了开启这些功能，你可以向<var>set_cookie</var>和<var>set_secure_cookie</var>方法传递关键字参数。比如，一个安全的HTTP-only cookie（不是Toenado的签名cookie）可以调用<code>self.set_cookie('foo', 'bar', httponly=True, secure=True)</code>发送。</p>
+                <p>为了开启这些功能，你可以向<var>set_cookie</var>和<var>set_secure_cookie</var>方法传递关键字参数。比如，一个安全的HTTP-only cookie（不是Tornado的签名cookie）可以调用<code>self.set_cookie('foo', 'bar', httponly=True, secure=True)</code>发送。</p>
                 <p>既然我们已经探讨了一些保护存储在cookies中的持久数据的策略，下面让我们看看另一种常见的攻击载体。下一节我们将看到一种防范向你的应用发送伪造请求的恶意网站。</p>
 
                 <h2>6.2 请求漏洞<a class="headerlink" id="ch6-2" href="#ch6-2">&para;</a></h2>
