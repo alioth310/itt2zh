@@ -407,7 +407,7 @@ document.write("hi!")
 &lt;/style&gt;</pre>
                 <p>更加灵活的是，你甚至可以简单地使用<var>html_body()</var>来在闭合的<var>&lt;/body&gt;</var>标签前添加完整的HTML标记：</p>
                 <pre class="codelist-code">def html_body(self):
-    return "&lt;script&gt;document.write("Hello!")&lt;/script&gt;"</pre>
+    return "&lt;script&gt;document.write(\"Hello!\")&lt;/script&gt;"</pre>
                 <p>显然，虽然直接内嵌添加脚本和样式表很有用，但是为了更严谨的包含（以及更整洁的代码！），添加样式表和脚本文件会显得更好。他们的工作方式基本相同，所以你可以使用<var>javascript_files()</var>和<var>css_files()</var>来包含完整的文件，不论是本地的还是外部的。</p>
                 <p>比如，你可以添加一个额外的本地CSS文件如下：</p>
                 <pre class="codelist-code">def css_files(self):
